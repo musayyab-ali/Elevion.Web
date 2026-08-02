@@ -1,0 +1,78 @@
+.brand-block {
+    background-color: var(--white);
+
+    .brand-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+
+        @media (min-width: 576px) {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        @media (min-width: 768px) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        @media (min-width: 1024px) {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        @media (min-width: 1280px) {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+    }
+
+    .brand-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 76px;
+        padding: 16px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: var(--white);
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+        &:hover {
+            border-color: rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        }
+    }
+
+    .brand-card-name {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: center;
+        color: var(--black);
+        line-height: 1.35;
+        word-break: break-word;
+    }
+
+    .brand-card-logo {
+        width: auto;
+        height: 34px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+
+    .brand-card-skeleton {
+        animation: brandPulse 1.2s ease-in-out infinite;
+    }
+}
+
+@keyframes brandPulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
