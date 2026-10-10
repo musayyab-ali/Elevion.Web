@@ -51,6 +51,8 @@ import { useCart } from "@/context/CartContext";
 import { reorderItems } from "@/lib/reorder";
 import { applyRedeemPoints, fetchPointsBalance } from "@/lib/points-api";
 import { checkPointsRequest, maxRedeemablePoints, pointsValue } from "@/lib/points";
+import { applyGiftCard, fetchMyGiftCards, giftCardErrorMessage, removeGiftCard, type GiftCard } from "@/lib/gift-cards";
+import { checkCardAmount, maxCardAmount } from "@/lib/gift-card-form";
 import {
   CampaignType,
   getCampaignDiscountLabel,
@@ -70,6 +72,10 @@ const OrderDetailsPage = () => {
   const [pointsInput, setPointsInput] = useState("");
   const [applyingPoints, setApplyingPoints] = useState(false);
   const [pointsError, setPointsError] = useState("");
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
+  const [giftInputs, setGiftInputs] = useState<Record<number, string>>({});
+  const [giftBusyId, setGiftBusyId] = useState<number | null>(null);
+  const [giftError, setGiftError] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -160,6 +166,13 @@ const OrderDetailsPage = () => {
         }
       } else {
         setPointsBalance(0);
+      }
+
+      // Gift cards the customer can pay with (an empty list when the shop has none switched on).
+      try {
+        setGiftCards(await fetchMyGiftCards(orderId));
+      } catch {
+        setGiftCards([]);
       }
 
       const resolvedCampaign = resolveCampaignId(orderDetails, paymentOptions);
@@ -420,9 +433,11 @@ const OrderDetailsPage = () => {
   const burnPoints = Math.max(0, Number(displayOrder?.BurnPoints) || 0);
   const pointRate = Math.max(0, Number(displayOrder?.BurnOnePointAmount) || 0);
   const pointsDiscount = pointsValue(burnPoints, pointRate);
+  // Gift cards also get their own line, so they are taken out of the general discount too.
+  const giftApplied = giftCards.reduce((sum, card) => sum + (Number(card.appliedToOrder) || 0), 0);
   const apiNetDiscount = Math.max(
     0,
-    (Number(displayOrder?.NetDiscount) || 0) - pointsDiscount,
+    (Number(displayOrder?.NetDiscount) || 0) - pointsDiscount - giftApplied,
   );
   const apiNetAmount = Math.max(0, Number(displayOrder?.NetAmount) || 0);
 
@@ -470,7 +485,7 @@ const OrderDetailsPage = () => {
     productDiscount = apiNetDiscount;
   }
 
-  const totalDiscount = productDiscount + promoDiscount + pointsDiscount;
+  const totalDiscount = productDiscount + promoDiscount + pointsDiscount + giftApplied;
   const classifiedProductDiscounts =
     productDiscount > 0 && itemCampaignTotal > 0
       ? itemCampaignDiscounts.map((campaign) => ({
@@ -506,7 +521,8 @@ const OrderDetailsPage = () => {
   const discountRowCount =
     productCampaignDiscounts.length +
     (promoDiscount > 0 ? 1 : 0) +
-    (pointsDiscount > 0 ? 1 : 0);
+    (pointsDiscount > 0 ? 1 : 0) +
+    (giftApplied > 0 ? 1 : 0);
 
   // Visible rows must always reconcile: Order + Delivery + POS - discounts.
   const computedNetAmount = Math.max(
@@ -516,7 +532,8 @@ const OrderDetailsPage = () => {
       posCharges -
       productDiscount -
       promoDiscount -
-      pointsDiscount,
+      pointsDiscount -
+      giftApplied,
   );
   // Prefer API when it already matches; otherwise show the reconciled total.
   const displayNetAmount =
@@ -573,6 +590,56 @@ const OrderDetailsPage = () => {
       setApplyingPoints(false);
     }
   };
+
+  const giftLocked = isCancelled || Boolean(alreadyPaidDetails) || giftBusyId !== null;
+
+  const handleUseGiftCard = async (card: GiftCard) => {
+    if (!orderId || Number.isNaN(orderId)) return;
+    const check = checkCardAmount(giftInputs[card.giftCardId] ?? "", {
+      balance: card.balance,
+      applied: card.appliedToOrder,
+      payable: displayNetAmount,
+    });
+    if (!check.ok) {
+      setGiftError(check.message);
+      toast.error(check.message);
+      return;
+    }
+
+    setGiftBusyId(card.giftCardId);
+    setGiftError("");
+    try {
+      await applyGiftCard(orderId, card.giftCardId, check.amount);
+      toast.success("Gift card applied.");
+      setGiftInputs((current) => ({ ...current, [card.giftCardId]: "" }));
+      await loadOrder({ silent: true });
+    } catch (err) {
+      const message = giftCardErrorMessage(err, "Could not use this gift card.");
+      setGiftError(message);
+      toast.error(message);
+    } finally {
+      setGiftBusyId(null);
+    }
+  };
+
+  const handleRemoveGiftCard = async (card: GiftCard) => {
+    if (!orderId || Number.isNaN(orderId)) return;
+    setGiftBusyId(card.giftCardId);
+    setGiftError("");
+    try {
+      await removeGiftCard(orderId, card.giftCardId);
+      toast.success("Gift card removed.");
+      await loadOrder({ silent: true });
+    } catch (err) {
+      const message = giftCardErrorMessage(err, "Could not remove this gift card.");
+      setGiftError(message);
+      toast.error(message);
+    } finally {
+      setGiftBusyId(null);
+    }
+  };
+
+  const usableGiftCards = giftCards.filter((card) => card.appliedToOrder > 0 || (card.isUsable && card.balance > 0));
 
   const handleSelectPayment = (gateway: PaymentGateway) => {
     setSelectedGateway(gateway.PGId);
@@ -778,6 +845,17 @@ const OrderDetailsPage = () => {
                         )}
                       </div>
                     </div>
+
+                    {displayOrder.Status === 3 && (
+                      <div className="mt-4">
+                        <Link
+                          href={`/my-account/returns/new?orderId=${displayOrder.OrderId}`}
+                          className="button-main inline-block bg-white text-black border border-black"
+                        >
+                          Return items
+                        </Link>
+                      </div>
+                    )}
 
                     <div className="order-meta-grid">
                       <div className="order-meta-item">
@@ -1145,6 +1223,13 @@ const OrderDetailsPage = () => {
                       </div>
                     )}
 
+                    {giftApplied > 0 && (
+                      <div className="order-total-row is-discount">
+                        <span>Gift card</span>
+                        <span>-{formatRsPrice(giftApplied)}</span>
+                      </div>
+                    )}
+
                     {totalDiscount > 0 && discountRowCount > 1 && (
                       <div className="order-total-row is-discount">
                         <span>Total discount</span>
@@ -1161,7 +1246,8 @@ const OrderDetailsPage = () => {
                             orderAmount -
                               productDiscount -
                               promoDiscount -
-                              pointsDiscount,
+                              pointsDiscount -
+                              giftApplied,
                           ),
                         )}
                       </span>
@@ -1291,6 +1377,80 @@ const OrderDetailsPage = () => {
                       </>
                     )}
                   </div>
+
+                  {usableGiftCards.length > 0 && (
+                    <div className="order-promo">
+                      <div className="caption1 text-secondary">Gift cards</div>
+                      <ul className="mt-2 space-y-3">
+                        {usableGiftCards.map((card) => {
+                          const max = maxCardAmount({ balance: card.balance, applied: card.appliedToOrder, payable: displayNetAmount });
+                          return (
+                            <li key={card.giftCardId} className="rounded-lg border border-line p-3">
+                              <div className="flex justify-between gap-2 caption1">
+                                <span>{card.maskedCode}</span>
+                                <strong>{formatRsPrice(card.balance)} left</strong>
+                              </div>
+                              {card.appliedToOrder > 0 ? (
+                                <div className="order-promo-applied mt-2">
+                                  <div className="min-w-0">
+                                    <span className="order-promo-applied-code">
+                                      <Icon.CheckCircle size={16} weight="fill" />
+                                      {formatRsPrice(card.appliedToOrder)} used
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="order-promo-btn is-remove"
+                                    onClick={() => void handleRemoveGiftCard(card)}
+                                    disabled={giftLocked}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="order-promo-row mt-2">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    className={`order-promo-input ${giftError ? "has-error" : ""}`}
+                                    aria-label={`Amount to use from gift card ${card.maskedCode}`}
+                                    placeholder={max > 0 ? `Up to ${max}` : "Cannot be used"}
+                                    value={giftInputs[card.giftCardId] ?? ""}
+                                    disabled={giftLocked || max <= 0}
+                                    onChange={(e) => {
+                                      setGiftInputs((current) => ({ ...current, [card.giftCardId]: e.target.value }));
+                                      if (giftError) setGiftError("");
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key !== "Enter") return;
+                                      e.preventDefault();
+                                      void handleUseGiftCard(card);
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="button-main bg-black order-promo-btn"
+                                    onClick={() => void handleUseGiftCard(card)}
+                                    disabled={giftLocked || max <= 0 || !(giftInputs[card.giftCardId] ?? "").trim()}
+                                  >
+                                    {giftBusyId === card.giftCardId ? "Applying..." : "Use"}
+                                  </button>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {giftError && (
+                        <p className="order-promo-error">
+                          <Icon.WarningCircle size={14} weight="fill" />
+                          {giftError}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {pointsAllowed && (pointsBalance > 0 || burnPoints > 0) && (
                     <div className="order-promo">

@@ -235,6 +235,18 @@ const renderAccountMenuContent = (onClose: () => void) => {
           </span>
           <span>Rewards</span>
         </Link>
+        <Link href="/my-account/gift-cards" className="account-dropdown-item" onClick={onClose}>
+          <span className="account-dropdown-item-icon">
+            <Icon.Wallet size={18} weight="duotone" />
+          </span>
+          <span>Gift cards</span>
+        </Link>
+        <Link href="/my-account/returns" className="account-dropdown-item" onClick={onClose}>
+          <span className="account-dropdown-item-icon">
+            <Icon.ArrowUUpLeft size={18} weight="duotone" />
+          </span>
+          <span>Returns</span>
+        </Link>
         <Link href="/my-account/privacy" className="account-dropdown-item" onClick={onClose}>
           <span className="account-dropdown-item-icon">
             <Icon.ShieldCheck size={18} weight="duotone" />

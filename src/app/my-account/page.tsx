@@ -634,6 +634,20 @@ const MyAccount = () => {
                     <strong className="heading6">Rewards &amp; Vouchers</strong>
                   </Link>
                   <Link
+                    href="/my-account/returns"
+                    className="item flex items-center gap-3 w-full px-5 py-4 rounded-lg cursor-pointer duration-300 hover:bg-white mt-1.5"
+                  >
+                    <Icon.ArrowUUpLeft size={20} />
+                    <strong className="heading6">My Returns</strong>
+                  </Link>
+                  <Link
+                    href="/my-account/gift-cards"
+                    className="item flex items-center gap-3 w-full px-5 py-4 rounded-lg cursor-pointer duration-300 hover:bg-white mt-1.5"
+                  >
+                    <Icon.Wallet size={20} />
+                    <strong className="heading6">Gift Cards</strong>
+                  </Link>
+                  <Link
                     href="/my-account/privacy"
                     className="item flex items-center gap-3 w-full px-5 py-4 rounded-lg cursor-pointer duration-300 hover:bg-white mt-1.5"
                   >
