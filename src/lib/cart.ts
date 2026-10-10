@@ -70,17 +70,32 @@ export type CartShippingPref = {
   stateId: string;
 };
 
+const SESSION_ID_CHARS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+/**
+ * 48 random characters from the browser's cryptographic generator. The id is what identifies a guest's cart (and the
+ * address typed into it) to the API, so it must not be guessable. Bytes above the largest multiple of 62 are skipped so
+ * every character is equally likely.
+ */
+export function generateCartSessionId(length = 48): string {
+  const limit = 256 - (256 % SESSION_ID_CHARS.length);
+  let id = "";
+  while (id.length < length) {
+    const bytes = crypto.getRandomValues(new Uint8Array(length));
+    for (const byte of bytes) {
+      if (byte < limit && id.length < length) id += SESSION_ID_CHARS[byte % SESSION_ID_CHARS.length];
+    }
+  }
+  return id;
+}
+
 export function getCartSessionId(): string {
   if (typeof window === "undefined") return "";
 
   let sessionId = localStorage.getItem(SESSION_STORAGE_KEY);
   if (!sessionId) {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    sessionId = Array.from(
-      { length: 48 },
-      () => chars[Math.floor(Math.random() * chars.length)],
-    ).join("");
+    sessionId = generateCartSessionId();
     localStorage.setItem(SESSION_STORAGE_KEY, sessionId);
   }
 
