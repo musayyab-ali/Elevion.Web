@@ -153,7 +153,10 @@ async function handle(req: NextRequest, ctx: { params: { path: string[] } }): Pr
   let response: NextResponse;
   let issued: TokenSet | null = null;
 
-  if (contentType.includes("application/json")) {
+  // A file download (e.g. the GDPR data export) is passed through untouched, even when it is JSON.
+  const isFile = Boolean(upstream.headers.get("content-disposition"));
+
+  if (contentType.includes("application/json") && !isFile) {
     const text = await upstream.text();
     let parsed: unknown = null;
     try {

@@ -634,6 +634,13 @@ const MyAccount = () => {
                     <Icon.Gift size={20} />
                     <strong className="heading6">Rewards &amp; Vouchers</strong>
                   </Link>
+                  <Link
+                    href="/my-account/privacy"
+                    className="item flex items-center gap-3 w-full px-5 py-4 rounded-lg cursor-pointer duration-300 hover:bg-white mt-1.5"
+                  >
+                    <Icon.ShieldCheck size={20} />
+                    <strong className="heading6">Privacy &amp; Data</strong>
+                  </Link>
 
                   <Link
                     href={"#!"}
