@@ -83,8 +83,8 @@ export function generateCartSessionId(length = 48): string {
   let id = "";
   while (id.length < length) {
     const bytes = crypto.getRandomValues(new Uint8Array(length));
-    for (const byte of bytes) {
-      if (byte < limit && id.length < length) id += SESSION_ID_CHARS[byte % SESSION_ID_CHARS.length];
+    for (let i = 0; i < bytes.length && id.length < length; i++) {
+      if (bytes[i] < limit) id += SESSION_ID_CHARS[bytes[i] % SESSION_ID_CHARS.length];
     }
   }
   return id;
