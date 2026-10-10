@@ -11,6 +11,7 @@ import CountdownTimeType from "@/type/CountdownType";
 import { Toaster } from "react-hot-toast";
 import { countdownTime } from "@/store/countdownTime";
 import LandingSeo from "@/components/Common/LandingSeo";
+import { getServerTheme, themeToCss } from "@/lib/theme";
 
 const serverTimeLeft: CountdownTimeType = countdownTime();
 
@@ -33,6 +34,9 @@ export default function RootLayout({
   return (
     <GlobalProvider>
       <html lang="en">
+        <head>
+          <style id="tenant-theme" dangerouslySetInnerHTML={{ __html: themeToCss(getServerTheme()) }} />
+        </head>
         <body className={instrument.className}>
           <LandingSeo />
           {children}
