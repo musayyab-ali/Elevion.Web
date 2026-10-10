@@ -126,6 +126,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
           image: getProductImages(detail)[0],
           price: getDetailSalePrice(detail),
           category: detail.Category,
+          categoryId: detail.CategoryId || undefined,
         });
         // Do not auto-select size/color/variant — user must choose
         setSelectedVariant(null);

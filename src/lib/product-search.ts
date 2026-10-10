@@ -2,7 +2,7 @@ import api from "@/lib/api";
 import { BRAND_ID } from "@/lib/config";
 import { cachedRequest } from "@/lib/cache";
 import { ProductType } from "@/type/ProductType";
-import { mapLandingProductToProductType } from "@/lib/category-products";
+import { fetchProductsByCategoryId, mapLandingProductToProductType } from "@/lib/category-products";
 
 /**
  * Search is done by the API (name / keyword match, paged), so the browser only ever receives the handful of
@@ -20,6 +20,17 @@ type ByCategoryData = {
 };
 
 const SEARCH_CACHE_MS = 30_000;
+
+/**
+ * Products of one category (used for "Picked for you"). The category page's own loader is reused because it
+ * combines the sources the shop fills (landing page, category listing, featured), which a single call misses.
+ */
+export function fetchCategoryProducts(categoryId: number, limit = 12): Promise<SearchPage> {
+  return cachedRequest(`category:${categoryId}:${limit}`, SEARCH_CACHE_MS, async () => {
+    const products = (await fetchProductsByCategoryId(categoryId)).slice(0, limit);
+    return { products, total: products.length };
+  });
+}
 
 export type PriceRange = { from?: number; to?: number };
 

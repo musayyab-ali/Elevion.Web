@@ -10,6 +10,7 @@ export type RecentProduct = {
   image: string;
   price: number;
   category?: string;
+  categoryId?: number;
 };
 
 const KEY = "recently_viewed_v1";
