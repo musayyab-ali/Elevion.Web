@@ -13,6 +13,7 @@ import Brand from "@/components/Home1/Brand";
 import Footer from "@/components/Footer/Footer";
 import ModalNewsletter from "@/components/Modal/ModalNewsletter";
 import LandingYoutube from "@/components/Home1/LandingYoutube";
+import RecentlyViewed from "@/components/Product/RecentlyViewed";
 import { BRAND_NAME } from "@/lib/config";
 import { fetchTenantLanding } from "@/lib/tenant-landing";
 
@@ -50,6 +51,7 @@ export default function Home() {
       {/* <Banner /> */}
       <Benefit props="md:py-20 py-10" />
       <LandingYoutube />
+      <RecentlyViewed className="container md:py-12 py-8" />
       <Testimonial limit={6} />
       {/* <Instagram /> */}
       <Brand />

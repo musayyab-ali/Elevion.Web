@@ -24,6 +24,7 @@ import {
   getVariantPrice,
   getComparePrice,
   getDetailSalePrice,
+  getProductImages,
   formatRsPrice,
   formatDiscountBadge,
   getActiveDiscount,
@@ -41,6 +42,8 @@ import {
   mapProductDetailToProductType,
 } from "@/lib/featured-products";
 import { getApiErrorMessage } from "@/lib/api";
+import { addRecentlyViewed } from "@/lib/recently-viewed";
+import RecentlyViewed from "@/components/Product/RecentlyViewed";
 import { ProductType } from "@/type/ProductType";
 import ProductBadges, {
   buildProductBadges,
@@ -116,6 +119,14 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
         );
 
         setProductDetail(detail);
+        addRecentlyViewed({
+          id: detail.ProductId,
+          detailId: detail.ProductDetailId || undefined,
+          name: detail.Name,
+          image: getProductImages(detail)[0],
+          price: getDetailSalePrice(detail),
+          category: detail.Category,
+        });
         // Do not auto-select size/color/variant — user must choose
         setSelectedVariant(null);
         setGroupSelections({});
@@ -937,6 +948,8 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
               </div>
             </section>
           )}
+
+          <RecentlyViewed excludeId={productDetail?.ProductId} className="mt-16 md:mt-24 pt-10 border-t border-line" />
         </div>
       </div>
     </div>

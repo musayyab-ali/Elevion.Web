@@ -48,6 +48,7 @@ import {
 } from "@/lib/promo";
 import toast from "react-hot-toast";
 import { useCart } from "@/context/CartContext";
+import { reorderItems } from "@/lib/reorder";
 import {
   CampaignType,
   getCampaignDiscountLabel,
@@ -61,7 +62,8 @@ const OrderDetailsPage = () => {
   const searchParams = useSearchParams();
   const orderId = Number(params.orderId);
   const promoAutoApplied = useRef(false);
-  const { clearCart } = useCart();
+  const { clearCart, fetchCart } = useCart();
+  const [reordering, setReordering] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -359,6 +361,31 @@ const OrderDetailsPage = () => {
       toast.error(getApiErrorMessage(err, "Failed to cancel order."));
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleBuyAgain = async () => {
+    const lines = (paymentData?.OrderDto ?? order)?.OrderDetails?.OrderItemList ?? [];
+    if (lines.length === 0 || reordering) return;
+
+    setReordering(true);
+    try {
+      const result = await reorderItems(lines);
+      if (result.added > 0) await fetchCart({ silent: true });
+
+      if (result.failed.length > 0) {
+        const names = result.failed.map((line) => line.name).join(", ");
+        toast.error(
+          result.added > 0
+            ? `Added ${result.added} item(s). Not available: ${names}`
+            : `These items could not be added: ${names}`,
+        );
+      } else {
+        toast.success("Items added to your cart.");
+      }
+      if (result.added > 0) router.push("/cart");
+    } finally {
+      setReordering(false);
     }
   };
 
@@ -1213,6 +1240,14 @@ const OrderDetailsPage = () => {
                   </div>
 
                   <div className="order-actions order-actions-full mt-4">
+                    <button
+                      type="button"
+                      onClick={() => void handleBuyAgain()}
+                      disabled={reordering || isCancelled || items.length === 0}
+                      className="order-action-btn"
+                    >
+                      {reordering ? "Adding to cart..." : "Buy Again"}
+                    </button>
                     <button
                       type="button"
                       onClick={openCancelModal}
