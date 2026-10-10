@@ -21,7 +21,9 @@ type ByCategoryData = {
 
 const SEARCH_CACHE_MS = 30_000;
 
-async function requestPage(query: string, pageNumber: number, pageSize: number): Promise<SearchPage> {
+export type PriceRange = { from?: number; to?: number };
+
+async function requestPage(query: string, pageNumber: number, pageSize: number, price: PriceRange = {}): Promise<SearchPage> {
   const res = await api.get("/api/v1/Product/by-category", {
     params: {
       BrandId: BRAND_ID,
@@ -29,6 +31,8 @@ async function requestPage(query: string, pageNumber: number, pageSize: number):
       PageSize: pageSize,
       SortBy: "name",
       ...(query ? { ProductName: query } : {}),
+      ...(price.from && price.from > 0 ? { FromPrice: price.from } : {}),
+      ...(price.to && price.to > 0 ? { ToPrice: price.to } : {}),
     },
   });
 
@@ -46,5 +50,16 @@ export function searchCatalog(query: string, pageNumber = 1, pageSize = 8): Prom
   const q = query.trim().slice(0, 100);
   return cachedRequest(`search:${q.toLowerCase()}:${pageNumber}:${pageSize}`, SEARCH_CACHE_MS, () =>
     requestPage(q, Math.max(1, pageNumber), pageSize),
+  );
+}
+
+/** The most matches fetched in one go for the search page, which then sorts and filters them in the browser. */
+export const SEARCH_RESULT_LIMIT = 100;
+
+/** Up to SEARCH_RESULT_LIMIT matches (optionally inside a price range) for the search page's filters and sorting. */
+export function searchCatalogAll(query: string, price: PriceRange = {}): Promise<SearchPage> {
+  const q = query.trim().slice(0, 100);
+  return cachedRequest(`search-all:${q.toLowerCase()}:${price.from ?? 0}-${price.to ?? 0}`, SEARCH_CACHE_MS, () =>
+    requestPage(q, 1, SEARCH_RESULT_LIMIT, price),
   );
 }
