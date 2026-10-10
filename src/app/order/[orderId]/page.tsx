@@ -49,6 +49,8 @@ import {
 import toast from "react-hot-toast";
 import { useCart } from "@/context/CartContext";
 import { reorderItems } from "@/lib/reorder";
+import { applyRedeemPoints, fetchPointsBalance } from "@/lib/points-api";
+import { clampPoints, maxRedeemablePoints, pointsValue } from "@/lib/points";
 import {
   CampaignType,
   getCampaignDiscountLabel,
@@ -64,6 +66,10 @@ const OrderDetailsPage = () => {
   const promoAutoApplied = useRef(false);
   const { clearCart, fetchCart } = useCart();
   const [reordering, setReordering] = useState(false);
+  const [pointsBalance, setPointsBalance] = useState(0);
+  const [pointsInput, setPointsInput] = useState("");
+  const [applyingPoints, setApplyingPoints] = useState(false);
+  const [pointsError, setPointsError] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -143,6 +149,17 @@ const OrderDetailsPage = () => {
             "Payment methods could not be loaded.",
           ),
         );
+      }
+
+      // The points balance is only asked for when the shop lets customers pay with points.
+      if (paymentOptions?.RewardPointsAllowed) {
+        try {
+          setPointsBalance(await fetchPointsBalance());
+        } catch {
+          setPointsBalance(0);
+        }
+      } else {
+        setPointsBalance(0);
       }
 
       const resolvedCampaign = resolveCampaignId(orderDetails, paymentOptions);
@@ -399,7 +416,14 @@ const OrderDetailsPage = () => {
     Number(displayOrder?.DeliveryCharges) || 0,
   );
   const posCharges = Math.max(0, Number(displayOrder?.POSCharges) || 0);
-  const apiNetDiscount = Math.max(0, Number(displayOrder?.NetDiscount) || 0);
+  // Points are shown on their own line, so they are taken out of the general discount here.
+  const burnPoints = Math.max(0, Number(displayOrder?.BurnPoints) || 0);
+  const pointRate = Math.max(0, Number(displayOrder?.BurnOnePointAmount) || 0);
+  const pointsDiscount = pointsValue(burnPoints, pointRate);
+  const apiNetDiscount = Math.max(
+    0,
+    (Number(displayOrder?.NetDiscount) || 0) - pointsDiscount,
+  );
   const apiNetAmount = Math.max(0, Number(displayOrder?.NetAmount) || 0);
 
   const promoCode =
@@ -446,7 +470,7 @@ const OrderDetailsPage = () => {
     productDiscount = apiNetDiscount;
   }
 
-  const totalDiscount = productDiscount + promoDiscount;
+  const totalDiscount = productDiscount + promoDiscount + pointsDiscount;
   const classifiedProductDiscounts =
     productDiscount > 0 && itemCampaignTotal > 0
       ? itemCampaignDiscounts.map((campaign) => ({
@@ -480,7 +504,9 @@ const OrderDetailsPage = () => {
       : classifiedProductDiscounts;
 
   const discountRowCount =
-    productCampaignDiscounts.length + (promoDiscount > 0 ? 1 : 0);
+    productCampaignDiscounts.length +
+    (promoDiscount > 0 ? 1 : 0) +
+    (pointsDiscount > 0 ? 1 : 0);
 
   // Visible rows must always reconcile: Order + Delivery + POS - discounts.
   const computedNetAmount = Math.max(
@@ -489,13 +515,49 @@ const OrderDetailsPage = () => {
       deliveryCharges +
       posCharges -
       productDiscount -
-      promoDiscount,
+      promoDiscount -
+      pointsDiscount,
   );
   // Prefer API when it already matches; otherwise show the reconciled total.
   const displayNetAmount =
     Math.abs(apiNetAmount - computedNetAmount) < 0.02
       ? apiNetAmount
       : computedNetAmount;
+
+  const pointsAllowed = Boolean(paymentData?.RewardPointsAllowed) && pointRate > 0;
+  const pointsMax = maxRedeemablePoints({
+    balance: pointsBalance,
+    applied: burnPoints,
+    payable: displayNetAmount,
+    rate: pointRate,
+  });
+  const pointsLocked = isCancelled || Boolean(alreadyPaidDetails) || applyingPoints;
+
+  // Sending 0 takes the points discount off the order again.
+  const handleApplyPoints = async (value?: number) => {
+    if (!orderId || Number.isNaN(orderId)) return;
+    const points = value ?? clampPoints(pointsInput, pointsMax);
+
+    if (value === undefined && points <= 0) {
+      setPointsError("Enter how many points you want to use.");
+      return;
+    }
+
+    setApplyingPoints(true);
+    setPointsError("");
+    try {
+      await applyRedeemPoints(orderId, points);
+      toast.success(points > 0 ? "Reward points applied." : "Reward points removed.");
+      setPointsInput("");
+      await loadOrder({ silent: true });
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Could not use your reward points.");
+      setPointsError(message);
+      toast.error(message);
+    } finally {
+      setApplyingPoints(false);
+    }
+  };
 
   const handleSelectPayment = (gateway: PaymentGateway) => {
     setSelectedGateway(gateway.PGId);
@@ -1061,6 +1123,13 @@ const OrderDetailsPage = () => {
                       </div>
                     )}
 
+                    {pointsDiscount > 0 && (
+                      <div className="order-total-row is-discount">
+                        <span>Reward points ({burnPoints} pts)</span>
+                        <span>-{formatRsPrice(pointsDiscount)}</span>
+                      </div>
+                    )}
+
                     {totalDiscount > 0 && discountRowCount > 1 && (
                       <div className="order-total-row is-discount">
                         <span>Total discount</span>
@@ -1074,7 +1143,10 @@ const OrderDetailsPage = () => {
                         {formatRsPrice(
                           Math.max(
                             0,
-                            orderAmount - productDiscount - promoDiscount,
+                            orderAmount -
+                              productDiscount -
+                              promoDiscount -
+                              pointsDiscount,
                           ),
                         )}
                       </span>
@@ -1204,6 +1276,78 @@ const OrderDetailsPage = () => {
                       </>
                     )}
                   </div>
+
+                  {pointsAllowed && (pointsBalance > 0 || burnPoints > 0) && (
+                    <div className="order-promo">
+                      <label htmlFor="order-points" className="caption1 text-secondary">
+                        Reward points
+                      </label>
+                      <p className="caption2 text-secondary mt-1">
+                        You have <strong>{pointsBalance}</strong> points
+                        {pointsBalance > 0 ? ` (worth ${formatRsPrice(pointsValue(pointsBalance, pointRate))})` : ""}.
+                        Each point is worth {formatRsPrice(pointRate)}.
+                      </p>
+
+                      {burnPoints > 0 ? (
+                        <div className="order-promo-applied mt-2">
+                          <div className="min-w-0">
+                            <span className="order-promo-applied-code">
+                              <Icon.CheckCircle size={16} weight="fill" />
+                              {burnPoints} points used
+                            </span>
+                            <p className="caption2 text-secondary mt-1">
+                              You saved {formatRsPrice(pointsDiscount)} with reward points.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="order-promo-btn is-remove"
+                            onClick={() => void handleApplyPoints(0)}
+                            disabled={pointsLocked}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="order-promo-row mt-2">
+                          <input
+                            id="order-points"
+                            type="number"
+                            min={0}
+                            max={pointsMax}
+                            inputMode="numeric"
+                            className={`order-promo-input ${pointsError ? "has-error" : ""}`}
+                            placeholder={pointsMax > 0 ? `Up to ${pointsMax} points` : "No points can be used"}
+                            value={pointsInput}
+                            disabled={pointsLocked || pointsMax <= 0}
+                            onChange={(e) => {
+                              setPointsInput(e.target.value);
+                              if (pointsError) setPointsError("");
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter") return;
+                              e.preventDefault();
+                              void handleApplyPoints();
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="button-main bg-black order-promo-btn"
+                            onClick={() => void handleApplyPoints()}
+                            disabled={pointsLocked || pointsMax <= 0 || !pointsInput.trim()}
+                          >
+                            {applyingPoints ? "Applying..." : "Use"}
+                          </button>
+                        </div>
+                      )}
+                      {pointsError && (
+                        <p className="order-promo-error">
+                          <Icon.WarningCircle size={14} weight="fill" />
+                          {pointsError}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <p className="caption2 text-secondary text-center mt-3">
                     All amounts in PKR (Rs.)

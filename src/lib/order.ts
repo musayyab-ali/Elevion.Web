@@ -149,6 +149,9 @@ export interface OrderDetailData {
   CustomerFullName: string;
   PromoCode: string | null;
   NetDiscount: number;
+  /** Reward points applied to this order and the money value of one point. */
+  BurnPoints?: number;
+  BurnOnePointAmount?: number;
   SaleCampaignId?: number | null;
   CampaignId?: number | null;
   AppliedCampaignId?: number | null;
