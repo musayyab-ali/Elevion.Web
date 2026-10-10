@@ -16,9 +16,6 @@ export const API_URL: string =
   // legacy name of the same setting (it was misnamed ..._API_KEY); kept so existing deployments keep working
   clean(process.env.NEXT_PUBLIC_API_KEY);
 
-/** Value of the "api-security-key" header the API asks every client to send. */
-export const API_SECURITY_KEY: string = clean(process.env.NEXT_PUBLIC_SECURITY_KEY);
-
 /** Public address of this website, used for payment return URLs. */
 export const SITE_URL: string = clean(process.env.NEXT_PUBLIC_SITE_URL);
 
@@ -31,14 +28,3 @@ export const API_PROXY_PATH = "/api-backend";
 
 /** Requests that take longer than this are cancelled instead of hanging the page. */
 export const API_TIMEOUT_MS = 30_000;
-
-if (typeof window === "undefined" && process.env.NODE_ENV !== "test") {
-  if (!API_URL) {
-    // eslint-disable-next-line no-console
-    console.warn("[config] NEXT_PUBLIC_API_URL is not set: API calls will fail. Copy .env.example to .env.");
-  }
-  if (!API_SECURITY_KEY) {
-    // eslint-disable-next-line no-console
-    console.warn("[config] NEXT_PUBLIC_SECURITY_KEY is not set: the API will reject requests.");
-  }
-}

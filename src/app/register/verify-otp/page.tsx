@@ -97,24 +97,26 @@ const VerifyOTP = () => {
           ? (response as { data: unknown }).data
           : response;
 
-      const loggedIn = await completeLoginAfterVerification(
-        responseBody,
-        storedData.username,
-      );
+      // The API signs the customer in when the code is right. If it did not (or the session could not start), the customer
+      // is sent to the login page: the password is never kept in the browser to log in silently.
+      const loggedIn = completeLoginAfterVerification(responseBody);
 
-      if (!loggedIn) {
-        throw new Error("Verification succeeded but automatic login failed.");
-      }
-
-      toast.success("Account verified and logged in successfully!");
       Cookies.remove("userRegData");
       Cookies.remove("registerEmail");
-      sessionStorage.removeItem("regPassword");
-      setSuccess("Logged in! Redirecting to home...");
 
-      window.setTimeout(() => {
-        router.push("/");
-      }, 1200);
+      if (loggedIn) {
+        toast.success("Account verified and logged in successfully!");
+        setSuccess("Logged in! Redirecting to home...");
+        window.setTimeout(() => {
+          router.push("/");
+        }, 1200);
+      } else {
+        toast.success("Account verified. Please log in.");
+        setSuccess("Account verified! Redirecting to login...");
+        window.setTimeout(() => {
+          router.push("/login");
+        }, 1200);
+      }
     } catch (err) {
       const message = getApiErrorMessage(
         err,

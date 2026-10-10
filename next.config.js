@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-const apiUrl =
-  process.env.NEXT_PUBLIC_API_URL?.trim() ||
-  process.env.NEXT_PUBLIC_API_KEY?.trim() || // legacy name of the same setting
-  "";
 const siteIsHttps = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().startsWith("https://");
 
 // Headers every page gets. A strict Content-Security-Policy is deliberately not set yet: payment pages load
@@ -52,21 +48,7 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  // Browser (HTTPS/Vercel) cannot call HTTP APIs directly (mixed content).
-  // Proxy same-origin /api-backend/* → backend HTTP API.
-  async rewrites() {
-    const backend =
-      process.env.API_BACKEND_URL?.trim() || apiUrl || "http://thelink.innovex.biz";
-
-    const destination = backend.replace(/\/$/, "");
-
-    return [
-      {
-        source: "/api-backend/:path*",
-        destination: `${destination}/:path*`,
-      },
-    ];
-  },
+    // The browser talks to /api-backend (src/app/api-backend), a server route that forwards to the API.
 };
 
 module.exports = nextConfig;

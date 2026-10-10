@@ -1,6 +1,5 @@
 ﻿"use client";
-import { getAuthToken, logout } from "@/lib/auth";
-import { jwtDecode } from "jwt-decode"; // Import add karein
+import { getAuthProfile, logout } from "@/lib/auth";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -130,30 +129,25 @@ const MenuOne: React.FC<Props> = ({ props }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ email: string; welcomeName: string | null } | null>(null);
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      try {
-        const decoded = jwtDecode<Record<string, unknown>>(token);
-        const email = typeof decoded.email === "string" ? decoded.email : "";
-        const welcomeName = getWelcomeName(decoded);
-
-        setUser({
-          email,
-          welcomeName,
-        });
-        setIsLoggedIn(true);
-      } catch (error) {
-        console.error("Token decode error:", error);
-        setIsLoggedIn(false);
-        setUser(null);
-      }
+    const profile = getAuthProfile();
+    if (profile) {
+      setUser({
+        email: profile.email,
+        welcomeName: getWelcomeName({
+          FullName: profile.fullName,
+          name: profile.name,
+          email: profile.email,
+          UserName: profile.userName,
+        }),
+      });
+      setIsLoggedIn(true);
     } else {
       setIsLoggedIn(false);
       setUser(null);
     }
   }, []);
   const handleLogout = async () => {
-    logout();
+    await logout();
     setIsLoggedIn(false);
     setUser(null);
     localStorage.removeItem("user");

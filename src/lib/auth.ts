@@ -1,14 +1,19 @@
 import Cookies from "js-cookie";
-import api from "@/lib/api";
+import api, { onSessionExpired } from "@/lib/api";
 import {
-  ACCESS_TOKEN_KEY,
   AUTH_EXPIRES_KEY,
-  EXPIRES_IN_KEY,
-  REFRESH_TOKEN_KEY,
+  AUTH_PROFILE_KEY,
+  SESSION_UNTIL_KEY,
   USER_ROLE_KEY,
 } from "@/lib/auth-keys";
 
-const DEFAULT_SESSION_SECONDS = 24 * 60 * 60;
+/**
+ * Browser side of the session.
+ *
+ * The real access / refresh tokens never reach JavaScript: the /api-backend proxy keeps them in httpOnly cookies
+ * (see src/app/api-backend). What the browser can see are harmless hints: until when the session lasts, the role and
+ * the name/email for the header. "Logged in" therefore means "the session hint is still in the future".
+ */
 
 export type AuthSessionData = {
   accessToken: string;
@@ -17,25 +22,14 @@ export type AuthSessionData = {
   userRole?: string | number;
 };
 
-type CookieOptions = {
-  expires: number;
-  secure: boolean;
-  sameSite: "Strict";
-  path: string;
+export type AuthProfile = {
+  email: string;
+  name: string | null;
+  fullName: string | null;
+  userName: string | null;
 };
 
 let logoutTimer: ReturnType<typeof setTimeout> | null = null;
-
-function getCookieOptions(expiresInSeconds: number): CookieOptions {
-  const cookieDays = expiresInSeconds / (24 * 60 * 60);
-
-  return {
-    expires: cookieDays > 0 ? cookieDays : 1 / 24,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
-    path: "/",
-  };
-}
 
 function readNestedValue(
   source: Record<string, unknown>,
@@ -49,6 +43,7 @@ function readNestedValue(
   return undefined;
 }
 
+/** Recognises a login-style response (the proxy has already moved the real tokens into cookies). */
 export function parseAuthResponse(data: unknown): AuthSessionData | null {
   if (!data || typeof data !== "object") return null;
 
@@ -74,38 +69,10 @@ export function parseAuthResponse(data: unknown): AuthSessionData | null {
     return null;
   }
 
-  const refreshToken = readNestedValue(source, [
-    "refreshToken",
-    "RefreshToken",
-    "refresh_token",
-  ]);
-
-  const expiresInRaw = readNestedValue(source, [
-    "expireIn",
-    "expiresIn",
-    "ExpiresIn",
-    "expires_in",
-    "AccessTokenExpiresIn",
-  ]);
-
-  const userRole = readNestedValue(source, [
-    "userRole",
-    "UserRole",
-    "user_role",
-  ]);
-
-  const expiresIn =
-    typeof expiresInRaw === "number"
-      ? expiresInRaw
-      : typeof expiresInRaw === "string"
-        ? Number(expiresInRaw)
-        : undefined;
+  const userRole = readNestedValue(source, ["userRole", "UserRole", "user_role"]);
 
   return {
     accessToken: accessToken.trim(),
-    refreshToken:
-      typeof refreshToken === "string" ? refreshToken.trim() : undefined,
-    expiresIn: expiresIn && expiresIn > 0 ? expiresIn : undefined,
     userRole:
       typeof userRole === "string" || typeof userRole === "number"
         ? userRole
@@ -113,58 +80,69 @@ export function parseAuthResponse(data: unknown): AuthSessionData | null {
   };
 }
 
+/**
+ * Call with the body of a login / OTP-verification / guest-order response. The session itself was created by the
+ * proxy (cookies); this only confirms the response was a login and starts the expiry timer.
+ */
 export function setAuthSessionFromResponse(data: unknown): boolean {
   const session = parseAuthResponse(data);
   if (!session) return false;
 
-  setAuthSession(session);
+  scheduleAutoLogout();
   return true;
 }
 
-export function setAuthSession(session: AuthSessionData) {
-  const expiresInSeconds = session.expiresIn ?? DEFAULT_SESSION_SECONDS;
-  const expiresAt = Date.now() + expiresInSeconds * 1000;
-  const options = getCookieOptions(expiresInSeconds);
-
-  Cookies.set(ACCESS_TOKEN_KEY, session.accessToken, options);
-  Cookies.set(AUTH_EXPIRES_KEY, String(expiresAt), options);
-  Cookies.set(EXPIRES_IN_KEY, String(expiresInSeconds), options);
-
-  if (session.refreshToken) {
-    Cookies.set(REFRESH_TOKEN_KEY, session.refreshToken, options);
-  }
-
-  if (session.userRole !== undefined) {
-    Cookies.set(USER_ROLE_KEY, String(session.userRole), options);
-  }
-
-  scheduleAutoLogout();
+function sessionUntil(): number | null {
+  const raw = Cookies.get(SESSION_UNTIL_KEY);
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }
 
+export function isAuthenticated(): boolean {
+  const until = sessionUntil();
+  return until !== null && Date.now() < until;
+}
+
+/**
+ * Kept for older callers: returns a marker string when logged in (never a real token) and undefined otherwise.
+ * Use isAuthenticated() / getAuthProfile() in new code.
+ */
 export function getAuthToken(): string | undefined {
-  const token = Cookies.get(ACCESS_TOKEN_KEY);
-  const expiresAt = Cookies.get(AUTH_EXPIRES_KEY);
-
-  if (!token || !expiresAt || Date.now() > Number(expiresAt)) {
-    clearAuthSession();
-    return undefined;
-  }
-
-  return token;
-}
-
-export function getRefreshToken(): string | undefined {
-  return Cookies.get(REFRESH_TOKEN_KEY);
+  return isAuthenticated() ? "session" : undefined;
 }
 
 export function getUserRole(): string | undefined {
   return Cookies.get(USER_ROLE_KEY);
 }
 
-export function isAuthenticated(): boolean {
-  return Boolean(getAuthToken());
+/** Name and email for the header, as hinted by the server when the session was created. */
+export function getAuthProfile(): AuthProfile | null {
+  if (!isAuthenticated()) return null;
+  const raw = Cookies.get(AUTH_PROFILE_KEY);
+  if (!raw) return null;
+
+  try {
+    const claims = JSON.parse(raw) as Record<string, unknown>;
+    const str = (...keys: string[]) => {
+      for (const key of keys) {
+        const v = claims[key];
+        if (typeof v === "string" && v.trim()) return v.trim();
+      }
+      return null;
+    };
+    return {
+      email: str("email") ?? "",
+      name: str("name"),
+      fullName: str("FullName", "fullName"),
+      userName: str("UserName", "username", "unique_name", "sub"),
+    };
+  } catch {
+    return null;
+  }
 }
 
+/** Forget the browser-side hints (the proxy clears the httpOnly cookies when logout() calls it). */
 export function clearAuthSession() {
   if (logoutTimer) {
     clearTimeout(logoutTimer);
@@ -172,30 +150,41 @@ export function clearAuthSession() {
   }
 
   const removeOptions = { path: "/" };
-  Cookies.remove(ACCESS_TOKEN_KEY, removeOptions);
-  Cookies.remove(REFRESH_TOKEN_KEY, removeOptions);
-  Cookies.remove(EXPIRES_IN_KEY, removeOptions);
-  Cookies.remove(USER_ROLE_KEY, removeOptions);
-  Cookies.remove(AUTH_EXPIRES_KEY, removeOptions);
-}
-
-export function logout() {
-  clearAuthSession();
-}
-
-function performAutoLogout() {
-  logout();
-
-  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-    window.location.href = "/login?expired=1";
+  for (const key of [AUTH_EXPIRES_KEY, SESSION_UNTIL_KEY, USER_ROLE_KEY, AUTH_PROFILE_KEY]) {
+    Cookies.remove(key, removeOptions);
   }
 }
 
-export function scheduleAutoLogout() {
-  const expiresAt = Cookies.get(AUTH_EXPIRES_KEY);
-  if (!expiresAt) return;
+/** Log out: clears the httpOnly cookies on the server and the hints here. Await it before navigating. */
+export async function logout(): Promise<void> {
+  clearAuthSession();
+  try {
+    await api.delete("/session", { baseURL: "/api-backend" });
+  } catch {
+    // Offline or already logged out: the local hints are gone, and the server cookies expire on their own.
+  }
+}
 
-  const remaining = Number(expiresAt) - Date.now();
+function performAutoLogout() {
+  void logout().finally(() => {
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login?expired=1";
+    }
+  });
+}
+
+/** Ends the session in the browser when the server says it is over (refresh failed / expired). */
+export function handleSessionExpired() {
+  if (typeof window === "undefined") return;
+  if (!isAuthenticated() && window.location.pathname.startsWith("/login")) return;
+  performAutoLogout();
+}
+
+export function scheduleAutoLogout() {
+  const until = sessionUntil();
+  if (until === null) return;
+
+  const remaining = until - Date.now();
 
   if (logoutTimer) {
     clearTimeout(logoutTimer);
@@ -207,12 +196,12 @@ export function scheduleAutoLogout() {
     return;
   }
 
-  logoutTimer = setTimeout(performAutoLogout, remaining);
+  // setTimeout cannot wait longer than ~24.8 days
+  logoutTimer = setTimeout(performAutoLogout, Math.min(remaining, 2_000_000_000));
 }
 
 export function initAuthSessionWatcher() {
-  const token = getAuthToken();
-  if (token) {
+  if (isAuthenticated()) {
     scheduleAutoLogout();
   }
 }
@@ -241,24 +230,9 @@ export async function loginWithCredentials(username: string, password: string) {
   return response.data;
 }
 
-export async function completeLoginAfterVerification(
-  verifyResponseData: unknown,
-  username: string,
-) {
-  if (setAuthSessionFromResponse(verifyResponseData)) {
-    return true;
-  }
-
-  const regPassword =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("regPassword")
-      : null;
-
-  if (regPassword) {
-    await loginWithCredentials(username, regPassword);
-    sessionStorage.removeItem("regPassword");
-    return true;
-  }
-
-  return false;
+/** After OTP verification the API signs the customer in; if it did not, the customer is sent to the login page. */
+export function completeLoginAfterVerification(verifyResponseData: unknown): boolean {
+  return setAuthSessionFromResponse(verifyResponseData);
 }
+
+onSessionExpired(handleSessionExpired);

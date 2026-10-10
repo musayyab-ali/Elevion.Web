@@ -344,9 +344,6 @@ const Register = () => {
 
       Cookies.set("registerEmail", payload.Email, cookieOptions);
 
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("regPassword", signUpData.password);
-      }
 
       try {
         await api.post("/api/v1/Account/SendOTP", {

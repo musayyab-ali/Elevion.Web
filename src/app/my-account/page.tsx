@@ -11,7 +11,6 @@ import * as Icon from "@phosphor-icons/react/dist/ssr";
 import { motion } from "framer-motion";
 import { logout } from "@/lib/auth";
 import { toast } from "react-hot-toast";
-import Cookies from "js-cookie";
 import api, { getApiErrorMessage } from "@/lib/api";
 import {
   CustomerReview,
@@ -320,8 +319,6 @@ const MyAccount = () => {
 
       if (res.status === 200) {
         toast.success(res.data?.Message || "Account deleted successfully!");
-
-        Cookies.remove("api-security-key");
         router.push("/register");
       }
     } catch (error: any) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ACCESS_TOKEN_KEY, AUTH_COOKIE_KEYS, AUTH_EXPIRES_KEY } from "@/lib/auth-keys";
+import { AUTH_COOKIE_KEYS, REFRESH_TOKEN_KEY, SESSION_UNTIL_KEY } from "@/lib/auth-keys";
 
 const PROTECTED_ROUTES = [
   "/my-account",
@@ -21,6 +21,11 @@ function clearAuthCookies(response: NextResponse) {
   });
 }
 
+/**
+ * A page is let through while a login session exists. The access token itself is renewed by the /api-backend proxy on
+ * the first API call, so an expired access token does not matter here; only the end of the whole session does
+ * (refresh cookie gone, or its hint in the past). Real authorization is always enforced by the API.
+ */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -28,14 +33,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(ACCESS_TOKEN_KEY)?.value;
-  const expiresAt = request.cookies.get(AUTH_EXPIRES_KEY)?.value;
-  const isExpired = !expiresAt || Date.now() > Number(expiresAt);
+  const refreshToken = request.cookies.get(REFRESH_TOKEN_KEY)?.value;
+  const sessionUntil = Number(request.cookies.get(SESSION_UNTIL_KEY)?.value);
+  const hasSession = Boolean(refreshToken) && Number.isFinite(sessionUntil) && Date.now() < sessionUntil;
 
-  if (!token || isExpired) {
+  if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    if (isExpired && token) {
+    if (refreshToken) {
       loginUrl.searchParams.set("expired", "1");
     }
 

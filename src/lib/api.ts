@@ -1,7 +1,5 @@
 import axios from "axios";
-import Cookies from "js-cookie";
-import { AUTH_EXPIRES_KEY, ACCESS_TOKEN_KEY } from "@/lib/auth-keys";
-import { API_PROXY_PATH, API_SECURITY_KEY, API_TIMEOUT_MS, API_URL } from "@/lib/config";
+import { API_PROXY_PATH, API_TIMEOUT_MS, API_URL } from "@/lib/config";
 
 // 1. Generic Response Interface
 export interface ApiResponse<T = any> {
@@ -15,21 +13,16 @@ export interface ApiResponse<T = any> {
 // NOTE: axios returns an AxiosResponse, so the body is at response.data (response.data.Data for the API envelope).
 // A previous global augmentation claimed calls returned the envelope directly, which was wrong and hid real bugs.
 
+const isBrowser = typeof window !== "undefined";
+
 /**
- * On HTTPS sites (e.g. Vercel), browsers block requests to http:// APIs (mixed content).
- * Use the Next.js rewrite proxy (/api-backend) so the browser only talks HTTPS same-origin.
- * Once the API itself is served over HTTPS this branch is simply never taken.
+ * In the browser every call goes through the same-origin /api-backend proxy (src/app/api-backend): it adds the API security key
+ * and the session tokens (httpOnly cookies) and refreshes expired tokens, so none of that is visible to page scripts, and an
+ * https page never talks to an http API directly (no mixed content). On the server (SSR) the API is called directly.
  */
 function getApiBaseUrl(): string {
-  if (
-    typeof window !== "undefined" &&
-    window.location.protocol === "https:" &&
-    API_URL.startsWith("http://")
-  ) {
-    return API_PROXY_PATH;
-  }
-
-  return API_URL;
+  if (isBrowser) return API_PROXY_PATH;
+  return (process.env.API_BACKEND_URL || API_URL).replace(/\/+$/, "");
 }
 
 const api = axios.create({
@@ -37,25 +30,34 @@ const api = axios.create({
   timeout: API_TIMEOUT_MS,
   headers: {
     "Content-Type": "application/json",
-    "api-security-key": API_SECURITY_KEY,
   },
 });
 
+let sessionExpiredHandler: (() => void) | null = null;
+
+/** Registered by lib/auth.ts: called when the server reports that the login session is over. */
+export function onSessionExpired(handler: () => void) {
+  sessionExpiredHandler = handler;
+}
+
 api.interceptors.request.use((config) => {
-  // Ensure baseURL stays correct if the client hydrated on HTTPS
-  if (typeof window !== "undefined") {
-    config.baseURL = getApiBaseUrl();
-
-    const token = Cookies.get(ACCESS_TOKEN_KEY);
-    const expiresAt = Cookies.get(AUTH_EXPIRES_KEY);
-
-    if (token && expiresAt && Date.now() <= Number(expiresAt)) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  config.baseURL = getApiBaseUrl();
+  if (!isBrowser) {
+    // Server-side calls (page metadata) are public: they only need the API security key, which is a server-only setting.
+    config.headers.set("api-security-key", process.env.API_SECURITY_KEY ?? "");
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (isBrowser && error?.response?.status === 401 && error.response.headers?.["x-session-expired"] === "1") {
+      sessionExpiredHandler?.();
+    }
+    return Promise.reject(error);
+  },
+);
 
 type AxiosLikeError = {
   isAxiosError?: boolean;
