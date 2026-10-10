@@ -524,7 +524,10 @@ const OrderDetailsPage = () => {
       ? apiNetAmount
       : computedNetAmount;
 
-  const pointsAllowed = Boolean(paymentData?.RewardPointsAllowed) && pointRate > 0;
+  // The API stops reporting "allowed" once every point is spent; the box must stay so the points can be taken off again.
+  const pointsAllowed =
+    (Boolean(paymentData?.RewardPointsAllowed) || burnPoints > 0) &&
+    pointRate > 0;
   const pointsMax = maxRedeemablePoints({
     balance: pointsBalance,
     applied: burnPoints,
