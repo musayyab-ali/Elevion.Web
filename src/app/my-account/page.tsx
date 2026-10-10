@@ -440,7 +440,6 @@ const MyAccount = () => {
           PageNumber: 1,
         },
       });
-      console.log("API Response:", res.data);
       if (res.data?.Data?.CustomerOrders) {
         setOrders(res.data.Data.CustomerOrders);
       } else {
