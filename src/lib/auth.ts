@@ -29,6 +29,13 @@ export type AuthProfile = {
   userName: string | null;
 };
 
+/** Fired on window whenever the login state changes, so screens that depend on it (wishlist, cart) can reload. */
+export const AUTH_CHANGED_EVENT = "auth:changed";
+
+function announceAuthChange() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
 let logoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 function readNestedValue(
@@ -89,6 +96,7 @@ export function setAuthSessionFromResponse(data: unknown): boolean {
   if (!session) return false;
 
   scheduleAutoLogout();
+  announceAuthChange();
   return true;
 }
 
@@ -153,6 +161,7 @@ export function clearAuthSession() {
   for (const key of [AUTH_EXPIRES_KEY, SESSION_UNTIL_KEY, USER_ROLE_KEY, AUTH_PROFILE_KEY]) {
     Cookies.remove(key, removeOptions);
   }
+  announceAuthChange();
 }
 
 /** Log out: clears the httpOnly cookies on the server and the hints here. Await it before navigating. */

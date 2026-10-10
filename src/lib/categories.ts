@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { cachedRequest } from "@/lib/cache";
 
 export interface CategorySeo {
   MetaTitle: string | null;
@@ -113,9 +114,12 @@ export function getCategoryBreadcrumb(
   return path;
 }
 
-export async function fetchCategoryTree(): Promise<Category[]> {
-  const res = await api.get<CategoryTreeResponse>("/api/v1/Category/current", {
-    params: { Status: -1 },
+/** The menu, the home page and the footer all ask for the category tree: they share one request for a minute. */
+export function fetchCategoryTree(): Promise<Category[]> {
+  return cachedRequest("category-tree", 60_000, async () => {
+    const res = await api.get<CategoryTreeResponse>("/api/v1/Category/current", {
+      params: { Status: -1 },
+    });
+    return res.data?.Data ?? [];
   });
-  return res.data?.Data ?? [];
 }

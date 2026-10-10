@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { cachedRequest } from "@/lib/cache";
 import { BRAND_ID } from "@/lib/config";
 import { ProductType } from "@/type/ProductType";
 import {
@@ -71,6 +72,13 @@ interface ByCategoryResponse {
   Message: string;
   Type: string;
   HttpStatusCode: number;
+}
+
+/** Several home sections read the same landing-page answer: one shared request for 30 seconds. */
+function fetchLandingPageResponse() {
+  return cachedRequest("landing-page", 30_000, () =>
+    api.get<LandingPageResponse>("/api/v1/Product/landing-page"),
+  );
 }
 
 function getBrandId(): number {
@@ -204,7 +212,7 @@ function normalizeProductList(
 async function fetchFromLandingPage(
   categoryId: number,
 ): Promise<ProductType[]> {
-  const res = await api.get<LandingPageResponse>("/api/v1/Product/landing-page");
+  const res = await fetchLandingPageResponse();
   const products: ProductType[] = [];
   const seen = new Set<number>();
 
@@ -393,7 +401,7 @@ export async function fetchAllBrandProducts(
 
 /** Landing-page feed, used to widen home tabs beyond the brand list. */
 export async function fetchLandingPageProducts(): Promise<LandingPageProduct[]> {
-  const res = await api.get<LandingPageResponse>("/api/v1/Product/landing-page");
+  const res = await fetchLandingPageResponse();
   const products: LandingPageProduct[] = [];
   const seen = new Set<number>();
 
@@ -461,7 +469,7 @@ async function fetchFromCategoryProductApi(
 }
 
 export async function fetchAllLandingProducts(): Promise<ProductType[]> {
-  const res = await api.get<LandingPageResponse>("/api/v1/Product/landing-page");
+  const res = await fetchLandingPageResponse();
   const products: ProductType[] = [];
   const seen = new Set<number>();
 

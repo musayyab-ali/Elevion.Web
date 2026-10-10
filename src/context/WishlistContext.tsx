@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { ProductType } from "@/type/ProductType";
 import api from "@/lib/api";
+import { AUTH_CHANGED_EVENT, isAuthenticated } from "@/lib/auth";
 import toast from "react-hot-toast";
 interface WishlistState {
   wishlistArray: ProductType[];
@@ -127,9 +128,15 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const fetchWishlist = useCallback(async () => {
+    // The wishlist belongs to a signed-in customer; asking as a guest only produced a 401 on every page load.
+    if (!isAuthenticated()) {
+      dispatch({ type: "LOAD_WISHLIST", payload: [] });
+      return;
+    }
+
     try {
       const res = await api.get("/api/v1/Customer/wishlist", {
-        params: { PageNumber: 1, PageSize: 10 },
+        params: { PageNumber: 1, PageSize: 100 },
       });
 
       if (res.data?.Data?.WishItemList) {
@@ -141,20 +148,25 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  // Load once, and again whenever the customer logs in or out.
   useEffect(() => {
     void fetchWishlist();
+    const onAuthChanged = () => void fetchWishlist();
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuthChanged);
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChanged);
   }, [fetchWishlist]);
 
-  useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
   const addToWishlist = async (item: ProductType) => {
-    // console.log("Add: Starting for item", item.id);
+    if (!isAuthenticated()) {
+      toast.error("Please log in to save items to your wishlist.");
+      return;
+    }
+
     try {
       const productDetailId = item.productDetailId ?? item.id;
       const productId = (item.id ?? productDetailId) as any;
 
-      const res = await api.post(
+      await api.post(
         `/api/v1/Customer/wishlist/items`,
         {},
         {
@@ -162,7 +174,6 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       );
 
-      console.log("Add: Success response:", res.data);
       toast.success("Added to wishlist!");
       await fetchWishlist();
     } catch (error) {
