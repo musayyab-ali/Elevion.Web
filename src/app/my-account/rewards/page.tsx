@@ -7,6 +7,7 @@ import TopNavOne from "@/components/Header/TopNav/TopNavOne";
 import MenuOne from "@/components/Header/Menu/MenuOne";
 import Breadcrumb from "@/components/Breadcrumb/Breadcrumb";
 import Footer from "@/components/Footer/Footer";
+import { expiryHint } from "@/lib/voucher-expiry";
 import {
   applyReferralCode,
   fetchMyLoyalty,
@@ -84,6 +85,11 @@ const VoucherCard = ({ voucher }: { voucher: Voucher }) => {
       </div>
 
       <div className="mt-3 caption1 text-secondary">
+        {usable && expiryHint(voucher.expiresOn) && (
+          <span className="mr-2 inline-block rounded-full bg-yellow/20 px-2.5 py-0.5 caption2 font-semibold text-black">
+            {expiryHint(voucher.expiresOn)}
+          </span>
+        )}
         {voucher.expiresOn ? `Valid until ${formatDate(voucher.expiresOn)}` : "No expiry date"}
         {voucher.redeemedOn ? ` · Used ${formatDate(voucher.redeemedOn)}` : ""}
       </div>
