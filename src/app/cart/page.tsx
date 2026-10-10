@@ -11,6 +11,13 @@ import Footer from "@/components/Footer/Footer";
 import * as Icon from "@phosphor-icons/react/dist/ssr";
 import { useCart } from "@/context/CartContext";
 import { formatRsPrice, resolveCartDisplayTotals } from "@/lib/cart";
+import {
+  canIncrease,
+  findStockIssues,
+  stockNote,
+  stockSummary,
+  type StockLine,
+} from "@/lib/cart-stock";
 import ProductSkeleton from "@/components/Other/ProductSkeleton";
 import { fetchProductDetails, RelatedProduct } from "@/lib/product-details";
 import {
@@ -34,11 +41,31 @@ const Cart = () => {
     removeFromCart,
     fetchCart,
     addToCart,
+    fixStockIssues,
   } = useCart();
+  const [fixingStock, setFixingStock] = useState(false);
 
   useEffect(() => {
     void fetchCart();
   }, [fetchCart]);
+
+  const toStockLine = (p: (typeof cartState.cartArray)[0]): StockLine => ({
+    cartId: p.cartId,
+    name: p.name,
+    quantity: p.quantity,
+    available: p.availableStock,
+  });
+  const stockIssues = findStockIssues(cartState.cartArray.map(toStockLine));
+  const stockProblem = stockSummary(stockIssues);
+
+  const handleFixStock = async () => {
+    setFixingStock(true);
+    try {
+      await fixStockIssues();
+    } finally {
+      setFixingStock(false);
+    }
+  };
 
   const linesNet = cartState.cartArray.reduce(
     (sum, item) => sum + (item.lineTotal || 0),
@@ -109,6 +136,7 @@ const Cart = () => {
   };
 
   const redirectToCheckout = () => {
+    if (stockIssues.length > 0) return; // the button is disabled too; this keeps a keyboard "Enter" honest
     router.push(`/checkout?discount=${totalDiscount}&ship=${shipCart}`);
   };
 
@@ -226,6 +254,25 @@ const Cart = () => {
                     </div>
                   ) : (
                     <>
+                      {stockProblem && (
+                        <div
+                          role="alert"
+                          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red/40 bg-red/5 p-4"
+                        >
+                          <p className="caption1 text-red font-semibold">
+                            {stockProblem} Please update your cart to continue.
+                          </p>
+                          <button
+                            type="button"
+                            className="button-main"
+                            onClick={() => void handleFixStock()}
+                            disabled={fixingStock}
+                          >
+                            {fixingStock ? "Updating..." : "Fix my cart"}
+                          </button>
+                        </div>
+                      )}
+
                       <div className="cart-items-head">
                         <span>Product</span>
                         <span className="text-center">Price</span>
@@ -270,6 +317,17 @@ const Cart = () => {
                                 {variantsLabel && (
                                   <span className="cart-item-variant">{variantsLabel}</span>
                                 )}
+                                {stockNote(toStockLine(product)) && (
+                                  <div
+                                    className={`caption2 mt-1 ${
+                                      findStockIssues([toStockLine(product)]).length > 0
+                                        ? "text-red font-semibold"
+                                        : "text-secondary"
+                                    }`}
+                                  >
+                                    {stockNote(toStockLine(product))}
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -306,7 +364,15 @@ const Cart = () => {
                                   type="button"
                                   aria-label="Increase quantity"
                                   className="cart-qty-btn"
-                                  disabled={updatingCartId === product.cartId}
+                                  disabled={
+                                    updatingCartId === product.cartId ||
+                                    !canIncrease(toStockLine(product))
+                                  }
+                                  title={
+                                    canIncrease(toStockLine(product))
+                                      ? undefined
+                                      : "No more in stock"
+                                  }
                                   onClick={() =>
                                     handleQuantityChange(
                                       product.cartId,
@@ -365,7 +431,15 @@ const Cart = () => {
                                   type="button"
                                   aria-label="Increase quantity"
                                   className="cart-qty-btn"
-                                  disabled={updatingCartId === product.cartId}
+                                  disabled={
+                                    updatingCartId === product.cartId ||
+                                    !canIncrease(toStockLine(product))
+                                  }
+                                  title={
+                                    canIncrease(toStockLine(product))
+                                      ? undefined
+                                      : "No more in stock"
+                                  }
                                   onClick={() =>
                                     handleQuantityChange(
                                       product.cartId,
@@ -568,7 +642,7 @@ const Cart = () => {
                   <button
                     type="button"
                     className="button-main bg-black"
-                    disabled={cartState.cartArray.length === 0}
+                    disabled={cartState.cartArray.length === 0 || stockIssues.length > 0}
                     onClick={redirectToCheckout}
                   >
                     Proceed To Checkout

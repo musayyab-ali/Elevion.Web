@@ -27,6 +27,7 @@ import {
   updateCartItemQuantity,
   clearCartSessionId,
 } from "@/lib/cart";
+import { findStockIssues } from "@/lib/cart-stock";
 import {
   RelatedProduct,
   resolveDefaultVariantSelection,
@@ -81,6 +82,8 @@ interface CartContextProps {
   ) => Promise<void>;
   fetchCart: (options?: { silent?: boolean }) => Promise<void>;
   clearCart: () => void;
+  /** Reduces lines to the stock that is left and removes sold-out lines. Returns what was changed. */
+  fixStockIssues: () => Promise<{ reduced: number; removed: number }>;
 }
 
 const CartContext = createContext<CartContextProps | undefined>(undefined);
@@ -162,6 +165,11 @@ function mapApiItemToLineItem(apiItem: ApiCartItem): CartLineItem {
     discountType: apiItem.DiscountValueType ?? 0,
     campaignType: apiItem.CampaignType ?? 0,
     campaignTypeDisplayName: apiItem.CampaignTypeDisplayName ?? null,
+    // How many the shop can supply (null = no limit): drives the "+" limit and the stock notes in the cart.
+    availableStock:
+      apiItem.InventoryManagement && apiItem.IsAvailableStock != null
+        ? Number(apiItem.IsAvailableStock)
+        : null,
     apiItem,
   };
 }
@@ -374,6 +382,53 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const fixStockIssues = async () => {
+    const lines = cartStateRef.current.cartArray;
+    const issues = findStockIssues(
+      lines.map((line) => ({
+        cartId: line.cartId,
+        name: line.name,
+        quantity: line.quantity,
+        available: line.availableStock,
+      })),
+    );
+    const result = { reduced: 0, removed: 0 };
+    if (issues.length === 0 || updatingCartRef.current) return result;
+
+    updatingCartRef.current = true;
+    try {
+      for (const issue of issues) {
+        const line = lines.find((l) => l.cartId === issue.cartId);
+        if (!line) continue;
+        try {
+          if (issue.kind === "soldout") {
+            await removeCartItemById(issue.cartId);
+            result.removed += 1;
+          } else {
+            await updateCartItemQuantity({
+              cartId: issue.cartId,
+              productId: Number(line.id),
+              productDetailId: Number(line.productDetailId),
+              currentQuantity: line.quantity,
+              nextQuantity: issue.available,
+            });
+            result.reduced += 1;
+          }
+        } catch (error) {
+          toast.error(getApiErrorMessage(error, `Could not update ${issue.name}.`));
+        }
+      }
+    } finally {
+      await fetchCart({ silent: true });
+      updatingCartRef.current = false;
+    }
+
+    if (result.reduced + result.removed > 0) {
+      toast.success("Your cart now matches what we have in stock.");
+    }
+    return result;
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -385,6 +440,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         updateCart,
         fetchCart,
         clearCart,
+        fixStockIssues,
       }}
     >
       {children}

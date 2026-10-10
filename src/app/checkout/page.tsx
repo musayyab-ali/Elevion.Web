@@ -10,6 +10,7 @@ import Breadcrumb from "@/components/Breadcrumb/Breadcrumb";
 import Footer from "@/components/Footer/Footer";
 import * as Icon from "@phosphor-icons/react/dist/ssr";
 import { useCart } from "@/context/CartContext";
+import { findStockIssues, stockSummary } from "@/lib/cart-stock";
 import api from "@/lib/api";
 import {
   formatRsPrice,
@@ -69,7 +70,19 @@ function normalizeDialCode(code: unknown): string {
 const Checkout = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { cartState, fetchCart, clearCart } = useCart();
+  const { cartState, fetchCart, clearCart, fixStockIssues } = useCart();
+  // A stock message from the server (the cart changed between the cart page and "Pay Now").
+  const [stockNotice, setStockNotice] = useState("");
+  const [fixingStock, setFixingStock] = useState(false);
+  const stockIssues = findStockIssues(
+    cartState.cartArray.map((line) => ({
+      cartId: line.cartId,
+      name: line.name,
+      quantity: line.quantity,
+      available: line.availableStock,
+    })),
+  );
+  const stockProblem = stockSummary(stockIssues);
 
   const [countries, setCountries] = useState<SelectOption[]>([]);
   const [states, setStates] = useState<SelectOption[]>([]);
@@ -514,6 +527,11 @@ const Checkout = () => {
       return;
     }
 
+    if (stockIssues.length > 0) {
+      toast.error(`${stockProblem} Please update your cart first.`);
+      return;
+    }
+
     if (
       !form.billingSameAsShipping &&
       (!form.billingFullName || !form.billingEmail || !form.billingPhone)
@@ -604,9 +622,28 @@ const Checkout = () => {
         router.push("/my-account");
       }
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Failed to create order."));
+      const message = getApiErrorMessage(error, "Failed to create order.");
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      toast.error(message);
+
+      // 409 / 503 here mean "not enough stock": the server has already reduced the cart, so show the
+      // customer what happened and the real cart instead of leaving them guessing.
+      if (status === 409 || status === 503) {
+        setStockNotice(message);
+        await fetchCart({ silent: true });
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleFixStock = async () => {
+    setFixingStock(true);
+    try {
+      await fixStockIssues();
+      setStockNotice("");
+    } finally {
+      setFixingStock(false);
     }
   };
 
@@ -1230,12 +1267,44 @@ const Checkout = () => {
                   </div>
                 </div>
 
+                {(stockProblem || stockNotice) && (
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-xl border border-red/40 bg-red/5 p-4"
+                  >
+                    <p className="caption1 text-red font-semibold">
+                      {stockProblem
+                        ? `${stockProblem} Please update your cart to continue.`
+                        : stockNotice}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {stockProblem && (
+                        <button
+                          type="button"
+                          className="button-main"
+                          onClick={() => void handleFixStock()}
+                          disabled={fixingStock}
+                        >
+                          {fixingStock ? "Updating..." : "Fix my cart"}
+                        </button>
+                      )}
+                      <Link href="/cart" className="button-main bg-white text-black border border-black">
+                        Review cart
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 <div className="checkout-submit">
                   <button
                     title="Create Your Order"
                     type="submit"
                     className="button-main bg-black"
-                    disabled={submitting || cartState.cartArray.length === 0}
+                    disabled={
+                      submitting ||
+                      cartState.cartArray.length === 0 ||
+                      stockIssues.length > 0
+                    }
                   >
                     {submitting ? "Creating pay now..." : "Pay Now"}
                   </button>

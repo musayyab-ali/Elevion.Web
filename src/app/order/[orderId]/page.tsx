@@ -50,7 +50,7 @@ import toast from "react-hot-toast";
 import { useCart } from "@/context/CartContext";
 import { reorderItems } from "@/lib/reorder";
 import { applyRedeemPoints, fetchPointsBalance } from "@/lib/points-api";
-import { clampPoints, maxRedeemablePoints, pointsValue } from "@/lib/points";
+import { checkPointsRequest, maxRedeemablePoints, pointsValue } from "@/lib/points";
 import {
   CampaignType,
   getCampaignDiscountLabel,
@@ -539,11 +539,23 @@ const OrderDetailsPage = () => {
   // Sending 0 takes the points discount off the order again.
   const handleApplyPoints = async (value?: number) => {
     if (!orderId || Number.isNaN(orderId)) return;
-    const points = value ?? clampPoints(pointsInput, pointsMax);
-
-    if (value === undefined && points <= 0) {
-      setPointsError("Enter how many points you want to use.");
-      return;
+    let points = 0;
+    if (value === undefined) {
+      // Tell the customer when they ask for too much; never apply a different number quietly.
+      const check = checkPointsRequest(pointsInput, {
+        balance: pointsBalance,
+        applied: burnPoints,
+        payable: displayNetAmount,
+        rate: pointRate,
+      });
+      if (!check.ok) {
+        setPointsError(check.message);
+        toast.error(check.message);
+        return;
+      }
+      points = check.points;
+    } else {
+      points = value;
     }
 
     setApplyingPoints(true);
@@ -1317,7 +1329,6 @@ const OrderDetailsPage = () => {
                             id="order-points"
                             type="number"
                             min={0}
-                            max={pointsMax}
                             inputMode="numeric"
                             className={`order-promo-input ${pointsError ? "has-error" : ""}`}
                             placeholder={pointsMax > 0 ? `Up to ${pointsMax} points` : "No points can be used"}

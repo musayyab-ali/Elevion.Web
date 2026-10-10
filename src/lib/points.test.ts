@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clampPoints, maxRedeemablePoints, pointsValue } from "./points.ts";
+import { checkPointsRequest, clampPoints, maxRedeemablePoints, pointsValue } from "./points.ts";
 
 test("limited by the balance", () => {
   assert.equal(maxRedeemablePoints({ balance: 120, applied: 0, payable: 5000, rate: 1 }), 120);
@@ -37,4 +37,32 @@ test("typed values are clamped to whole points inside the allowed range", () => 
 test("value of points", () => {
   assert.equal(pointsValue(30, 2), 60);
   assert.equal(pointsValue(-5, 2), 0);
+});
+
+test("asking for more points than owned is an error, not a smaller number", () => {
+  const base = { balance: 200, applied: 0, payable: 5000, rate: 1 };
+  assert.deepEqual(checkPointsRequest("500", base), { ok: false, message: "You only have 200 reward points." });
+  assert.deepEqual(checkPointsRequest("200", base), { ok: true, points: 200 });
+  assert.deepEqual(checkPointsRequest("1", { ...base, balance: 1 }), { ok: true, points: 1 });
+});
+
+test("asking for more than the order can take says how many it can take", () => {
+  const r = checkPointsRequest("600", { balance: 1000, applied: 0, payable: 500, rate: 1 });
+  assert.deepEqual(r, { ok: false, message: "You can use at most 499 points on this order." });
+});
+
+test("empty, zero, negative and fractional input are rejected with a reason", () => {
+  const base = { balance: 200, applied: 0, payable: 5000, rate: 1 };
+  for (const bad of ["", "  ", "0", "-3", "abc"]) {
+    const r = checkPointsRequest(bad, base);
+    assert.equal(r.ok, false);
+  }
+  assert.deepEqual(checkPointsRequest("2.5", base), { ok: false, message: "Points must be a whole number." });
+});
+
+test("points already on the order count as owned", () => {
+  // 100 applied, 20 left: 120 owned, so 120 is fine and 121 is not.
+  const p = { balance: 20, applied: 100, payable: 400, rate: 1 };
+  assert.equal(checkPointsRequest("120", p).ok, true);
+  assert.deepEqual(checkPointsRequest("121", p), { ok: false, message: "You only have 120 reward points." });
 });

@@ -80,7 +80,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [mainSwiper, setMainSwiper] = useState<SwiperType | null>(null);
 
-  const { addToCart } = useCart();
+  const { addToCart, cartState } = useCart();
   const { openModalCart } = useModalCartContext();
   const { addToWishlist, removeFromWishlist, wishlistState } = useWishlist();
   const { openModalWishlist } = useModalWishlistContext();
@@ -204,8 +204,18 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
     selectedVariant,
     inStock,
   });
+  // What this customer already has of this exact variant counts against the stock.
+  const variantDetailId = Number(
+    selectedVariant?.ProductDetailId ?? productDetail.ProductDetailId,
+  );
+  const inCartQuantity = cartState.cartArray
+    .filter((line) => Number(line.productDetailId) === variantDetailId)
+    .reduce((sum, line) => sum + (line.quantity || 0), 0);
+  const remainingStock =
+    availableStock !== null ? Math.max(0, availableStock - inCartQuantity) : null;
   const maxQuantity =
-    availableStock !== null ? Math.max(1, availableStock) : 999;
+    remainingStock !== null ? Math.max(1, remainingStock) : 999;
+  const stockAllUsed = remainingStock !== null && remainingStock <= 0;
   const detailBadges = buildProductBadges({
     isPromotional:
       productDetail.IsPromotional || Boolean(selectedVariant?.IsPromotional),
@@ -255,6 +265,15 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
   };
 
   const handleQuantityChange = (delta: number) => {
+    if (delta > 0 && remainingStock !== null && quantity >= maxQuantity) {
+      // Say why the number stops, instead of a button that silently does nothing.
+      toast.error(
+        stockAllUsed
+          ? "You already have all available units of this product in your cart."
+          : `Only ${remainingStock} available${inCartQuantity > 0 ? ` (you already have ${inCartQuantity} in your cart)` : ""}.`,
+      );
+      return;
+    }
     setQuantity((prev) => Math.min(maxQuantity, Math.max(1, prev + delta)));
   };
 
@@ -268,6 +287,13 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
       productDetail.ProductVariantDetail?.productVariantCombinationList ?? [];
     if (variantsList.length > 0 && !selectedVariant) {
       toast.error("Please select size, color and variant first.");
+      return;
+    }
+
+    if (stockAllUsed) {
+      toast.error(
+        "You already have all available units of this product in your cart.",
+      );
       return;
     }
 
@@ -645,7 +671,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
                       type="button"
                       aria-label="Increase quantity"
                       onClick={() => handleQuantityChange(1)}
-                      disabled={quantity >= maxQuantity}
+                      aria-disabled={quantity >= maxQuantity}
                       className={`p-1 ${quantity >= maxQuantity ? "opacity-30 cursor-not-allowed" : "cursor-pointer hover:text-black"}`}
                     >
                       <Icon.Plus size={20} />

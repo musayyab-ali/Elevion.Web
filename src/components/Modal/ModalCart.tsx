@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { canIncrease } from "@/lib/cart-stock";
 import Link from "next/link";
 import Image from "next/image";
 import * as Icon from "@phosphor-icons/react/dist/ssr";
@@ -441,7 +442,25 @@ const ModalCart = ({
                               type="button"
                               aria-label="Increase quantity"
                               className="modal-cart-qty-btn"
-                              disabled={updatingCartId === product.cartId}
+                              disabled={
+                                updatingCartId === product.cartId ||
+                                !canIncrease({
+                                  cartId: product.cartId,
+                                  name: product.name,
+                                  quantity: product.quantity,
+                                  available: product.availableStock,
+                                })
+                              }
+                              title={
+                                canIncrease({
+                                  cartId: product.cartId,
+                                  name: product.name,
+                                  quantity: product.quantity,
+                                  available: product.availableStock,
+                                })
+                                  ? undefined
+                                  : "No more in stock"
+                              }
                               onClick={() =>
                                 void updateCart(
                                   product.cartId,

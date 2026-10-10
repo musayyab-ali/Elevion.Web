@@ -667,12 +667,16 @@ const MyAccount = () => {
               <div
                 className={`tab text-content w-full ${activeTab === "dashboard" ? "block" : "hidden"}`}
               >
-                {(userProfile?.EarnedRewardPoints ?? 0) > 0 && (
+                {userProfile && (
                   <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-5">
                     <div>
                       <div className="caption1 text-secondary">Your reward points</div>
-                      <div className="heading4 mt-1">{userProfile?.EarnedRewardPoints}</div>
-                      <p className="caption1 text-secondary mt-1">Use them on your next order at the payment step.</p>
+                      <div className="heading4 mt-1">{userProfile.EarnedRewardPoints ?? 0}</div>
+                      <p className="caption1 text-secondary mt-1">
+                        {(userProfile.EarnedRewardPoints ?? 0) > 0
+                          ? "Use them on your next order at the payment step."
+                          : "Points you earn on your orders will show here."}
+                      </p>
                     </div>
                     <Link href="/my-account/rewards" className="button-main">
                       View my rewards

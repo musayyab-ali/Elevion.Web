@@ -47,6 +47,8 @@ export interface ApiCartItem {
   IsProductAvailableInStock?: boolean;
   IsAvailableQuantity?: boolean;
   InventoryManagement?: boolean;
+  /** How many the shop can supply (only meaningful when InventoryManagement is true). */
+  IsAvailableStock?: number | null;
 }
 
 export interface CartSummary {
@@ -518,5 +520,11 @@ export function mapApiCartItemToProductType(item: ApiCartItem): ProductType {
     discountType: item.DiscountValueType ?? 0,
     campaignType: item.CampaignType ?? 0,
     campaignTypeDisplayName: item.CampaignTypeDisplayName ?? null,
+    // Stock facts for the cart screens (limit on "+", "only N left" notes, "fix my cart").
+    inventoryManagement: Boolean(item.InventoryManagement),
+    availableStock:
+      item.InventoryManagement && item.IsAvailableStock != null
+        ? Number(item.IsAvailableStock)
+        : null,
   };
 }

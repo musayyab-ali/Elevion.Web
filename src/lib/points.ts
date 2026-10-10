@@ -25,6 +25,39 @@ export function maxRedeemablePoints({ balance, applied, payable, rate }: PointsI
   return Math.max(0, Math.min(owned, byAmount));
 }
 
+export type PointsCheck = { ok: true; points: number } | { ok: false; message: string };
+
+/**
+ * Checks what the customer typed instead of quietly changing it: asking for more points than they have (or than the
+ * order can take) must say so, not apply a smaller number without telling them.
+ */
+export function checkPointsRequest(input: string, p: PointsInput): PointsCheck {
+  const typed = Number(input.trim());
+  if (!input.trim() || !Number.isFinite(typed) || typed <= 0) {
+    return { ok: false, message: "Enter how many points you want to use." };
+  }
+  if (!Number.isInteger(typed)) {
+    return { ok: false, message: "Points must be a whole number." };
+  }
+
+  const owned = Math.max(0, Math.floor(p.balance)) + Math.max(0, Math.floor(p.applied));
+  if (typed > owned) {
+    return { ok: false, message: `You only have ${owned} reward point${owned === 1 ? "" : "s"}.` };
+  }
+
+  const max = maxRedeemablePoints(p);
+  if (typed > max) {
+    return {
+      ok: false,
+      message:
+        max > 0
+          ? `You can use at most ${max} point${max === 1 ? "" : "s"} on this order.`
+          : "Reward points cannot be used on this order.",
+    };
+  }
+  return { ok: true, points: typed };
+}
+
 /** Reads what the customer typed: whole points between 0 and the maximum, never NaN. */
 export function clampPoints(input: string, max: number): number {
   const n = Math.floor(Number(input));
