@@ -27,7 +27,7 @@ import toast from "react-hot-toast";
 interface ProductProps {
   data: ProductType;
   type: string;
-  style: string;
+  style?: string;
   hideOriginPrice?: boolean;
   badgeMode?: "all" | "featured" | "new" | "sale";
 }
@@ -177,7 +177,7 @@ const Product: React.FC<ProductProps> = ({
   };
 
   const handleAddToWishlist = () => {
-    if (wishlistState.wishlistArray.some((item) => item.id === data.id)) {
+    if (wishlistState.wishlistArray.some((item: ProductType) => item.id === data.id)) {
       removeFromWishlist(data.id);
     } else {
       addToWishlist(data);
@@ -243,7 +243,7 @@ const Product: React.FC<ProductProps> = ({
                     </div>
                   )}
                   <div
-                    className={`add-wishlist-btn w-[32px] h-[32px] flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item) => item.id === data.id) ? "active" : ""}`}
+                    className={`add-wishlist-btn w-[32px] h-[32px] flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item: ProductType) => item.id === data.id) ? "active" : ""}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAddToWishlist();
@@ -253,7 +253,7 @@ const Product: React.FC<ProductProps> = ({
                       Add To Wishlist
                     </div>
                     {wishlistState.wishlistArray.some(
-                      (item) => item.id === data.id,
+                      (item: ProductType) => item.id === data.id,
                     ) ? (
                       <>
                         <Icon.Heart
@@ -447,7 +447,7 @@ const Product: React.FC<ProductProps> = ({
                       </div>
                     )}
                     <div
-                      className={`add-wishlist-btn w-9 h-9 flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item) => item.id === data.id) ? "active" : ""}`}
+                      className={`add-wishlist-btn w-9 h-9 flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item: ProductType) => item.id === data.id) ? "active" : ""}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAddToWishlist();
@@ -457,7 +457,7 @@ const Product: React.FC<ProductProps> = ({
                         Add To Wishlist
                       </div>
                       {wishlistState.wishlistArray.some(
-                        (item) => item.id === data.id,
+                        (item: ProductType) => item.id === data.id,
                       ) ? (
                         <>
                           <Icon.Heart
@@ -762,7 +762,7 @@ const Product: React.FC<ProductProps> = ({
                       </div>
                       <div className="list-action-right flex items-center justify-center gap-3 mt-4">
                         <div
-                          className={`add-wishlist-btn w-[32px] h-[32px] flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item) => item.id === data.id) ? "active" : ""}`}
+                          className={`add-wishlist-btn w-[32px] h-[32px] flex items-center justify-center rounded-full bg-white duration-300 relative ${wishlistState.wishlistArray.some((item: ProductType) => item.id === data.id) ? "active" : ""}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAddToWishlist();
@@ -772,7 +772,7 @@ const Product: React.FC<ProductProps> = ({
                             Add To Wishlist
                           </div>
                           {wishlistState.wishlistArray.some(
-                            (item) => item.id === data.id,
+                            (item: ProductType) => item.id === data.id,
                           ) ? (
                             <>
                               <Icon.Heart
@@ -845,14 +845,14 @@ const Product: React.FC<ProductProps> = ({
             />
             <div className="list-action flex flex-col gap-1 absolute top-0 right-0">
               <span
-                className={`add-wishlist-btn w-8 h-8 bg-white flex items-center justify-center rounded-full box-shadow-sm duration-300 ${wishlistState.wishlistArray.some((item) => item.id === data.id) ? "active" : ""}`}
+                className={`add-wishlist-btn w-8 h-8 bg-white flex items-center justify-center rounded-full box-shadow-sm duration-300 ${wishlistState.wishlistArray.some((item: ProductType) => item.id === data.id) ? "active" : ""}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleAddToWishlist();
                 }}
               >
                 {wishlistState.wishlistArray.some(
-                  (item) => item.id === data.id,
+                  (item: ProductType) => item.id === data.id,
                 ) ? (
                   <>
                     <Icon.Heart

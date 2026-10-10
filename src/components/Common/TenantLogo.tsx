@@ -11,6 +11,8 @@ interface TenantLogoProps {
   imageClassName?: string;
   href?: string;
   welcomeName?: string | null;
+  /** Fallback text shown when the tenant has no logo image. */
+  logoName?: string;
 }
 
 const TenantLogo = ({

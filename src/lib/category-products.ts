@@ -248,7 +248,9 @@ function extractProductListFromByCategory(
   }
 
   return normalizeProductList(
-    data.productListViewModel ?? data.ProductListViewModel ?? [],
+    (data as { productListViewModel?: LandingPageProduct[]; ProductListViewModel?: LandingPageProduct[] }).productListViewModel ??
+      (data as { ProductListViewModel?: LandingPageProduct[] }).ProductListViewModel ??
+      [],
   );
 }
 
@@ -256,7 +258,7 @@ function getTotalRecordsFromByCategory(
   data: ByCategoryResponse["Data"] | LandingPageProduct[] | LandingPageProduct | null | undefined,
 ): number {
   if (!data || Array.isArray(data)) return 0;
-  return Number(data.TotalRecords) || 0;
+  return Number((data as { TotalRecords?: number }).TotalRecords) || 0;
 }
 
 /** Prefer the copy that still has campaign / discount fields. */

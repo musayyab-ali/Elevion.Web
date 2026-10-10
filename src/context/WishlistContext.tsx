@@ -133,9 +133,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (res.data?.Data?.WishItemList) {
-        const normalized = res.data.Data.WishItemList.map(
-          normalizeWishlistItem,
-        ).filter((item) => item.id);
+        const normalized = res.data.Data.WishItemList.map(normalizeWishlistItem).filter((item: ProductType) => item.id);
         dispatch({ type: "LOAD_WISHLIST", payload: normalized });
       }
     } catch (error) {

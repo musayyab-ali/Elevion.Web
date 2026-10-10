@@ -229,12 +229,14 @@ const getOrderStatusValue = (order: {
   OrderStatusDisplayName?: unknown;
   StatusName?: unknown;
   Status?: unknown;
-}) =>
-  order.OrderStatus ??
-  order.OrderStatusDisplayName ??
-  order.StatusName ??
-  order.Status ??
-  "";
+}): string =>
+  String(
+    order.OrderStatus ??
+      order.OrderStatusDisplayName ??
+      order.StatusName ??
+      order.Status ??
+      "",
+  );
 
 const matchesOrderHistoryTab = (status: unknown, tab: OrderHistoryTab) => {
   if (tab === "all") return true;

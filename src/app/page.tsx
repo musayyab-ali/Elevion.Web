@@ -3,7 +3,6 @@ import TopNavOne from "@/components/Header/TopNav/TopNavOne";
 import MenuOne from "@/components/Header/Menu/MenuOne";
 import SliderOne from "@/components/Slider/SliderOne";
 import WhatNewOne from "@/components/Home1/WhatNewOne";
-import productData from "@/data/Product.json";
 import Collection from "@/components/Home1/Collection";
 import TabFeatures from "@/components/Home1/TabFeatures";
 import Banner from "@/components/Home1/Banner";
@@ -44,7 +43,7 @@ export default function Home() {
         <MenuOne props="bg-transparent" />
         <SliderOne />
       </div>
-      <WhatNewOne data={productData} start={0} limit={4} />
+      <WhatNewOne />
       <Collection />
       <TabFeatures />
       {/* <Banner /> */}

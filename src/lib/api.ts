@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from "axios";
+import axios from "axios";
 import Cookies from "js-cookie";
 import { AUTH_EXPIRES_KEY, ACCESS_TOKEN_KEY } from "@/lib/auth-keys";
 import { API_PROXY_PATH, API_SECURITY_KEY, API_TIMEOUT_MS, API_URL } from "@/lib/config";
@@ -12,15 +12,8 @@ export interface ApiResponse<T = any> {
   success?: boolean;
 }
 
-// 2. Global Axios module augmentation (so every existing call is typed as ApiResponse<T> without touching each file)
-declare module "axios" {
-  export interface AxiosInstance {
-    get<T = any, R = ApiResponse<T>, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<R>;
-    post<T = any, R = ApiResponse<T>, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<R>;
-    put<T = any, R = ApiResponse<T>, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<R>;
-    delete<T = any, R = ApiResponse<T>, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<R>;
-  }
-}
+// NOTE: axios returns an AxiosResponse, so the body is at response.data (response.data.Data for the API envelope).
+// A previous global augmentation claimed calls returned the envelope directly, which was wrong and hid real bugs.
 
 /**
  * On HTTPS sites (e.g. Vercel), browsers block requests to http:// APIs (mixed content).

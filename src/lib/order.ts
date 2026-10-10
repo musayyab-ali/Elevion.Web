@@ -60,13 +60,16 @@ export interface CreateOrderFormValues {
   specialInstructions: string;
   deliveryInstructions: string;
   isGiftOrder: boolean;
-  deliveryOption: number;
+  deliveryOption: number | string;
   isoCode: string;
   deliveryDate: string;
   billingSameAsShipping: boolean;
   billingFullName: string;
   billingEmail: string;
   billingPhone: string;
+  /** Calling code and ISO country of the billing phone (falls back to the shipping phone's). */
+  billingPhoneCode?: string;
+  billingIsoCode?: string;
   isAddNewAddress: boolean;
   addressBookId: number;
   longitude: string;
@@ -100,12 +103,19 @@ export interface OrderShippingDetails {
   Address: string;
   Longitude: string;
   Latitude: string;
+  /** Country calling code, when the API returns it separately from Phone. */
+  PhoneCode?: string | number | null;
+  phoneCode?: string | number | null;
+  phone?: string;
 }
 
 export interface OrderBillingDetails {
   EmailAddress: string;
   Phone: string;
   FullName: string | null;
+  PhoneCode?: string | number | null;
+  phoneCode?: string | number | null;
+  phone?: string;
 }
 
 export interface OrderDetailData {
@@ -144,6 +154,13 @@ export interface OrderDetailData {
   AppliedCampaignId?: number | null;
   CampaignType?: number | null;
   CampaignTypeDisplayName?: string | null;
+  /** Optional fields some payment flows return. */
+  SubTotal?: number;
+  TaxAmount?: number;
+  PaymentState?: string | number | null;
+  PaymentUrl?: string | null;
+  CheckoutUrl?: string | null;
+  RedirectUrl?: string | null;
 }
 
 export interface PaymentGateway {
@@ -367,7 +384,7 @@ export function buildCreateOrderPayload(
     ISOCode: str(values.isoCode) || "PK",
     PhoneCode: phoneCode,
     IsAddNewAddress: values.isAddNewAddress,
-    DeliveryOption: values.deliveryOption || 1,
+    DeliveryOption: Number(values.deliveryOption) || 1,
     SpecialInstructions: str(values.specialInstructions) || "N/A",
     DeliveryInstructions: str(values.deliveryInstructions) || "N/A",
     OrderSource: 1,

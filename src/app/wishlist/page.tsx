@@ -31,7 +31,7 @@ const Wishlist = () => {
     setSortOption(option);
   };
 
-  let filteredData = wishlistState.wishlistArray.filter((product) => {
+  let filteredData = wishlistState.wishlistArray.filter((product: ProductType) => {
     let isTypeMatched = true;
     if (type) {
       isTypeMatched = product.type === type;

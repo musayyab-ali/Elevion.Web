@@ -111,6 +111,8 @@ const Checkout = () => {
     billingFullName: "",
     billingEmail: "",
     billingPhone: "",
+    billingPhoneCode: "",
+    billingIsoCode: "",
     billingSameAsShipping: true,
     isAddNewAddress: true,
     addressBookId: 0,
