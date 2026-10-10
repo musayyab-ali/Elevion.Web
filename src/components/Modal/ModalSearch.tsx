@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,19 +8,18 @@ import Product from '../Product/Product';
 import ProductSkeleton from '@/components/Other/ProductSkeleton'
 import { useModalSearchContext } from '@/context/ModalSearchContext'
 import { ProductType } from '@/type/ProductType'
-import {
-    filterProductsByQuery,
-    getSearchableProducts,
-    getSuggestedProducts,
-} from '@/lib/product-search'
+import { searchCatalog } from '@/lib/product-search'
 import { getProductDetailUrl } from '@/lib/featured-products'
 
 const ModalSearch = () => {
     const { isModalOpen, closeModalSearch } = useModalSearchContext();
     const [searchKeyword, setSearchKeyword] = useState('');
-    const [products, setProducts] = useState<ProductType[]>([]);
+    const [suggestions, setSuggestions] = useState<ProductType[]>([]);
+    const [totalMatches, setTotalMatches] = useState(0);
     const [loading, setLoading] = useState(false);
     const router = useRouter()
+
+    const trimmedQuery = searchKeyword.trim();
 
     useEffect(() => {
         if (!isModalOpen) {
@@ -28,36 +27,31 @@ const ModalSearch = () => {
             return;
         }
 
+        // Ask the API for just the few matches that are shown, and only once the customer pauses typing.
+        // "cancelled" drops the answer of an older keystroke if a newer one has already been sent.
         let cancelled = false;
+        setLoading(true);
 
-        const loadProducts = async () => {
-            setLoading(true);
+        const timer = window.setTimeout(async () => {
             try {
-                const data = await getSearchableProducts();
-                if (!cancelled) setProducts(data);
+                const page = await searchCatalog(trimmedQuery, 1, 6);
+                if (cancelled) return;
+                setSuggestions(page.products);
+                setTotalMatches(page.total);
             } catch {
-                if (!cancelled) setProducts([]);
+                if (cancelled) return;
+                setSuggestions([]);
+                setTotalMatches(0);
             } finally {
                 if (!cancelled) setLoading(false);
             }
-        };
-
-        loadProducts();
+        }, trimmedQuery ? 250 : 0);
 
         return () => {
             cancelled = true;
+            window.clearTimeout(timer);
         };
-    }, [isModalOpen]);
-
-    const trimmedQuery = searchKeyword.trim();
-    const suggestions = useMemo(
-        () => getSuggestedProducts(products, trimmedQuery, 6),
-        [products, trimmedQuery],
-    );
-    const totalMatches = useMemo(
-        () => filterProductsByQuery(products, trimmedQuery).length,
-        [products, trimmedQuery],
-    );
+    }, [isModalOpen, trimmedQuery]);
 
     const handleSearch = (value: string) => {
         const trimmed = value.trim();

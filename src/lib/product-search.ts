@@ -1,116 +1,50 @@
 import api from "@/lib/api";
 import { BRAND_ID } from "@/lib/config";
+import { cachedRequest } from "@/lib/cache";
 import { ProductType } from "@/type/ProductType";
-import {
-  fetchAllLandingProducts,
-  filterProductsByQuery,
-  mapLandingProductToProductType,
-} from "@/lib/category-products";
-import {
-  fetchFeaturedProducts,
-  mapFeaturedProductToProductType,
-} from "@/lib/featured-products";
+import { mapLandingProductToProductType } from "@/lib/category-products";
 
-export { filterProductsByQuery };
+/**
+ * Search is done by the API (name / keyword match, paged), so the browser only ever receives the handful of
+ * products it is about to show instead of downloading the whole catalogue first.
+ */
 
-function getBrandId(): number {
-  return BRAND_ID;
-}
+export type SearchPage = { products: ProductType[]; total: number };
 
-let cachedProducts: ProductType[] | null = null;
-let cachePromise: Promise<ProductType[]> | null = null;
+type RawProduct = Parameters<typeof mapLandingProductToProductType>[0];
 
-async function fetchFromByCategoryApi(): Promise<ProductType[]> {
+type ByCategoryData = {
+  TotalRecords?: number;
+  productListViewModel?: RawProduct[];
+  ProductListViewModel?: RawProduct[];
+};
+
+const SEARCH_CACHE_MS = 30_000;
+
+async function requestPage(query: string, pageNumber: number, pageSize: number): Promise<SearchPage> {
   const res = await api.get("/api/v1/Product/by-category", {
     params: {
-      BrandId: getBrandId(),
-      PageNumber: 1,
-      PageSize: 10,
+      BrandId: BRAND_ID,
+      PageNumber: pageNumber,
+      PageSize: pageSize,
       SortBy: "name",
+      ...(query ? { ProductName: query } : {}),
     },
   });
 
-  const data = res.data?.Data;
-  const list =
-    data?.productListViewModel ?? data?.ProductListViewModel ?? [];
+  const data = ((res.data as { Data?: ByCategoryData })?.Data ?? {}) as ByCategoryData;
+  const list = data.productListViewModel ?? data.ProductListViewModel ?? [];
+  const products = list
+    .filter((product) => Boolean((product as { ProductId?: number })?.ProductId))
+    .map((product) => mapLandingProductToProductType(product));
 
-  return list
-    .filter((product: { ProductId?: number }) => Boolean(product?.ProductId))
-    .map((product: Parameters<typeof mapLandingProductToProductType>[0]) =>
-      mapLandingProductToProductType(product),
-    );
+  return { products, total: Number(data.TotalRecords) || products.length };
 }
 
-async function loadAllSearchableProducts(): Promise<ProductType[]> {
-  const seen = new Set<string>();
-  const merged: ProductType[] = [];
-
-  const addProducts = (items: ProductType[]) => {
-    for (const item of items) {
-      if (seen.has(item.id)) continue;
-      seen.add(item.id);
-      merged.push(item);
-    }
-  };
-
-  try {
-    addProducts(await fetchFromByCategoryApi());
-  } catch {
-    // Continue to landing page fallback
-  }
-
-  try {
-    addProducts(await fetchAllLandingProducts());
-  } catch {
-    // Continue to featured fallback
-  }
-
-  try {
-    const featured = await fetchFeaturedProducts();
-    addProducts(featured.map(mapFeaturedProductToProductType));
-  } catch {
-    // No more fallbacks
-  }
-
-  return merged;
-}
-
-export async function getSearchableProducts(
-  forceRefresh = false,
-): Promise<ProductType[]> {
-  if (!forceRefresh && cachedProducts) {
-    return cachedProducts;
-  }
-
-  if (!forceRefresh && cachePromise) {
-    return cachePromise;
-  }
-
-  cachePromise = loadAllSearchableProducts()
-    .then((products) => {
-      cachedProducts = products;
-      return products;
-    })
-    .finally(() => {
-      cachePromise = null;
-    });
-
-  return cachePromise;
-}
-
-export async function searchProducts(query: string): Promise<ProductType[]> {
-  const products = await getSearchableProducts();
-  return filterProductsByQuery(products, query);
-}
-
-export function getSuggestedProducts(
-  products: ProductType[],
-  query: string,
-  limit = 6,
-): ProductType[] {
-  if (!query.trim()) {
-    return products.filter((product) => product.new || product.sale).slice(0, limit);
-  }
-
-  return filterProductsByQuery(products, query).slice(0, limit);
+/** One page of matches for `query` (an empty query lists the catalogue). Repeated identical requests are shared for 30 s. */
+export function searchCatalog(query: string, pageNumber = 1, pageSize = 8): Promise<SearchPage> {
+  const q = query.trim().slice(0, 100);
+  return cachedRequest(`search:${q.toLowerCase()}:${pageNumber}:${pageSize}`, SEARCH_CACHE_MS, () =>
+    requestPage(q, Math.max(1, pageNumber), pageSize),
+  );
 }

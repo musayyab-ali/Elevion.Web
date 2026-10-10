@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import TopNavOne from '@/components/Header/TopNav/TopNavOne'
 import MenuOne from '@/components/Header/Menu/MenuOne'
@@ -9,16 +9,14 @@ import { ProductType } from '@/type/ProductType'
 import Product from '@/components/Product/Product'
 import ProductSkeleton from '@/components/Other/ProductSkeleton'
 import HandlePagination from '@/components/Other/HandlePagination'
-import {
-    filterProductsByQuery,
-    getSearchableProducts,
-} from '@/lib/product-search'
+import { searchCatalog } from '@/lib/product-search'
 import { getApiErrorMessage } from '@/lib/api'
 
 const SearchResult = () => {
     const [searchKeyword, setSearchKeyword] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
     const [products, setProducts] = useState<ProductType[]>([])
+    const [totalMatches, setTotalMatches] = useState(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const productsPerPage = 8
@@ -28,35 +26,33 @@ const SearchResult = () => {
     const query = searchParams.get('query')?.trim() ?? ''
 
     useEffect(() => {
+        setSearchKeyword(query)
+        setCurrentPage(0)
+    }, [query])
+
+    // The API returns one page of matches at a time; the page is fetched again when the keyword or page changes.
+    useEffect(() => {
         let cancelled = false
+        setLoading(true)
+        setError(null)
 
-        const loadProducts = async () => {
-            setLoading(true)
-            setError(null)
-
-            try {
-                const data = await getSearchableProducts()
-                if (!cancelled) setProducts(data)
-            } catch (err) {
-                if (!cancelled) {
-                    setError(getApiErrorMessage(err, 'Failed to load products.'))
-                }
-            } finally {
+        searchCatalog(query, currentPage + 1, productsPerPage)
+            .then((result) => {
+                if (cancelled) return
+                setProducts(result.products)
+                setTotalMatches(result.total)
+            })
+            .catch((err) => {
+                if (!cancelled) setError(getApiErrorMessage(err, 'Failed to load products.'))
+            })
+            .finally(() => {
                 if (!cancelled) setLoading(false)
-            }
-        }
-
-        loadProducts()
+            })
 
         return () => {
             cancelled = true
         }
-    }, [])
-
-    useEffect(() => {
-        setSearchKeyword(query)
-        setCurrentPage(0)
-    }, [query])
+    }, [query, currentPage])
 
     useEffect(() => {
         const trimmed = searchKeyword.trim()
@@ -81,13 +77,8 @@ const SearchResult = () => {
     }
 
     const activeQuery = searchKeyword.trim()
-    const filteredData = useMemo(
-        () => filterProductsByQuery(products, activeQuery),
-        [products, activeQuery],
-    )
-    const pageCount = Math.ceil(filteredData.length / productsPerPage)
-    const offset = currentPage * productsPerPage
-    const currentProducts = filteredData.slice(offset, offset + productsPerPage)
+    const pageCount = Math.ceil(totalMatches / productsPerPage)
+    const currentProducts = products
 
     const handlePageChange = (selected: number) => {
         setCurrentPage(selected)
@@ -106,9 +97,9 @@ const SearchResult = () => {
                     <div className="heading flex flex-col items-center">
                         <div className="heading4 text-center">
                             {activeQuery ? (
-                                <>Found {filteredData.length} results for {String.raw`"`}{activeQuery}{String.raw`"`}</>
+                                <>Found {totalMatches} results for {String.raw`"`}{activeQuery}{String.raw`"`}</>
                             ) : (
-                                <>Showing {filteredData.length} products</>
+                                <>Showing {totalMatches} products</>
                             )}
                         </div>
                         <div className="input-block lg:w-1/2 sm:w-3/5 w-full md:h-[52px] h-[44px] sm:mt-8 mt-5">
