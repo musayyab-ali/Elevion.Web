@@ -23,6 +23,9 @@ const brand = Number(clean(process.env.NEXT_PUBLIC_BRAND_ID));
 /** Tenant brand whose catalogue is shown (defaults to 1). */
 export const BRAND_ID: number = Number.isFinite(brand) && brand > 0 ? brand : 1;
 
+/** Shop name shown in the header, footer, page titles and emails-to-customer texts; every tenant sets its own. */
+export const BRAND_NAME: string = clean(process.env.NEXT_PUBLIC_BRAND_NAME) || "TopSaver";
+
 /** Same-origin path the Next.js rewrite proxies to the API (see next.config.js). */
 export const API_PROXY_PATH = "/api-backend";
 

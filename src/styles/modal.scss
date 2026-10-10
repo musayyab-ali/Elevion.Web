@@ -467,7 +467,7 @@
 
     .newsletter-modal-promo {
         width: 42%;
-        background: linear-gradient(160deg, #d2ef9a 0%, #c8e890 45%, #bde684 100%);
+        background: linear-gradient(160deg, var(--green) 0%, color-mix(in srgb, var(--green) 94%, #000) 45%, color-mix(in srgb, var(--green) 88%, #000) 100%);
         color: var(--black);
         position: relative;
         overflow: hidden;
@@ -588,7 +588,7 @@
         margin-bottom: 18px;
         padding: 16px;
         border-radius: 16px;
-        background: linear-gradient(135deg, #eef8d8 0%, #d2ef9a 100%);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--green) 40%, #fff) 0%, var(--green) 100%);
         border: 1px solid rgba(0, 0, 0, 0.06);
     }
 

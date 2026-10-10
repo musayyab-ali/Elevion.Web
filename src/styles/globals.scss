@@ -92,7 +92,7 @@ input[type="file"] {
 }
 
 .bg-blue {
-  background-color: #4856DA;
+  background-color: var(--purple);
 }
 
 .bg-silver {
@@ -100,7 +100,7 @@ input[type="file"] {
 }
 
 .bg-linear {
-  background: linear-gradient(238deg, #FAF8F1 0%, #F6F3EF 99.66%);
+  background: linear-gradient(238deg, color-mix(in srgb, var(--surface) 60%, #fff) 0%, var(--surface) 100%);
 }
 
 .box-shadow-xs {

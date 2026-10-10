@@ -529,7 +529,7 @@
     padding: 18px 16px;
     border: 1px solid var(--line);
     border-radius: 18px;
-    background: linear-gradient(180deg, #fbfdf7 0%, #ffffff 48%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--green) 12%, #fff) 0%, #ffffff 48%);
 
     @media (min-width: 640px) {
         padding: 22px 20px;
@@ -646,7 +646,7 @@
             top: 36px;
             bottom: 0;
             width: 2px;
-            background: #e8ecd9;
+            background: color-mix(in srgb, var(--green) 30%, #fff);
         }
 
         &:last-child::before {
@@ -655,7 +655,7 @@
 
         &.is-done::before,
         &.is-current::before {
-            background: #9fd85a;
+            background: var(--green);
         }
     }
 }
@@ -667,7 +667,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #f3f4f0;
+    background: color-mix(in srgb, var(--green) 14%, #fff);
     color: var(--secondary);
     margin-bottom: 8px;
     transition: all 0.25s ease;
@@ -694,11 +694,11 @@
 .order-tracking-line {
     flex: 1;
     height: 4px;
-    background: #e8ecd9;
+    background: color-mix(in srgb, var(--green) 30%, #fff);
     transition: background 0.3s ease;
 
     &.is-filled {
-        background: #6bb523;
+        background: color-mix(in srgb, var(--green) 60%, #000);
     }
 
     &.is-hidden {
@@ -710,9 +710,9 @@
     width: 14px;
     height: 14px;
     border-radius: 9999px;
-    background: #d7dbc8;
+    background: color-mix(in srgb, var(--green) 45%, #fff);
     border: 3px solid #fff;
-    box-shadow: 0 0 0 1px #d7dbc8;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 45%, #fff);
     flex-shrink: 0;
     box-sizing: border-box;
 }
@@ -734,12 +734,12 @@
 .order-tracking-step.is-done {
     .order-tracking-icon {
         background: rgba(196, 235, 148, 0.55);
-        color: #3f6f12;
+        color: color-mix(in srgb, var(--green) 30%, #000);
     }
 
     .order-tracking-dot {
-        background: #6bb523;
-        box-shadow: 0 0 0 1px #6bb523;
+        background: color-mix(in srgb, var(--green) 60%, #000);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 60%, #000);
     }
 }
 
@@ -760,7 +760,7 @@
     }
 
     .order-tracking-step-date {
-        color: #6bb523;
+        color: color-mix(in srgb, var(--green) 60%, #000);
         font-weight: 600;
     }
 }
@@ -791,7 +791,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(196, 235, 148, 0.45);
-    color: #3f6f12;
+    color: color-mix(in srgb, var(--green) 30%, #000);
     flex-shrink: 0;
 }
 

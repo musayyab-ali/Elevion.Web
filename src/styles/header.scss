@@ -60,7 +60,7 @@
     &.style-one {
         &:not(.fixed) {
             &.bg-transparent {
-background: linear-gradient(135deg, #dff5c1 0%, #c9f387 100%);
+background: linear-gradient(135deg, color-mix(in srgb, var(--green) 55%, #fff) 0%, var(--green) 100%);
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
             }

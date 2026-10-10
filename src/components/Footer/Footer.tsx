@@ -8,6 +8,7 @@ import LandingFooterImage from "@/components/Home1/LandingFooterImage";
 import TenantLogo from "@/components/Common/TenantLogo";
 import { subscribeNewsletter } from "@/lib/tenant-landing";
 import { getApiErrorMessage } from "@/lib/api";
+import { BRAND_NAME } from "@/lib/config";
 
 const FOOTER_LINK_CLASS = "caption1 has-line-before duration-300 w-fit";
 
@@ -188,7 +189,7 @@ const Footer = () => {
 
           <div className="footer-bottom border-t border-line">
             <p className="footer-copyright caption1 text-secondary">
-              © {new Date().getFullYear()} TopSaver. All Rights Reserved.
+              © {new Date().getFullYear()} {BRAND_NAME}. All Rights Reserved.
             </p>
           </div>
         </div>

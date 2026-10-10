@@ -13,6 +13,7 @@ import Brand from "@/components/Home1/Brand";
 import Footer from "@/components/Footer/Footer";
 import ModalNewsletter from "@/components/Modal/ModalNewsletter";
 import LandingYoutube from "@/components/Home1/LandingYoutube";
+import { BRAND_NAME } from "@/lib/config";
 import { fetchTenantLanding } from "@/lib/tenant-landing";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,13 +21,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!landing?.Seo) {
     return {
-      title: "TopSaver",
+      title: BRAND_NAME,
       description: "Multipurpose eCommerce Template",
     };
   }
 
   return {
-    title: landing.Seo.MetaTitle || "TopSaver",
+    title: landing.Seo.MetaTitle || BRAND_NAME,
     description: landing.Seo.MetaDescription || undefined,
     keywords: landing.Seo.MetaKeywords || undefined,
   };

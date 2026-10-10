@@ -11,6 +11,7 @@ import CountdownTimeType from "@/type/CountdownType";
 import { Toaster } from "react-hot-toast";
 import { countdownTime } from "@/store/countdownTime";
 import LandingSeo from "@/components/Common/LandingSeo";
+import { BRAND_NAME } from "@/lib/config";
 import { getServerTheme, themeToCss } from "@/lib/theme";
 
 const serverTimeLeft: CountdownTimeType = countdownTime();
@@ -22,7 +23,7 @@ const instrument = Instrument_Sans({
   adjustFontFallback: false,
 });
 export const metadata: Metadata = {
-  title: "TopSaver",
+  title: BRAND_NAME,
   description: "Multipurpose eCommerce Template",
 };
 

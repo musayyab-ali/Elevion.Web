@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLandingPage } from "@/hooks/useLandingPage";
 import { isLandingImageEnabled } from "@/lib/tenant-landing";
+import { BRAND_NAME } from "@/lib/config";
 
 interface TenantLogoProps {
   className?: string;
@@ -43,7 +44,7 @@ const TenantLogo = ({
       "Welcome Back!"
     )
   ) : (
-    "TopSaver"
+    BRAND_NAME
   );
 
   return (
@@ -55,13 +56,13 @@ const TenantLogo = ({
           ? welcomeName
             ? `Welcome, ${welcomeName}`
             : "Welcome Back!"
-          : "TopSaver"
+          : BRAND_NAME
       }
     >
       {logoSrc && (
         <Image
           src={logoSrc}
-          alt={welcomeName ? "User profile" : "TopSaver logo"}
+          alt={welcomeName ? "User profile" : `${BRAND_NAME} logo`}
           width={44}
           height={44}
           className={`${imageClassName} shrink-0`}
