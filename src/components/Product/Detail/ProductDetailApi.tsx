@@ -43,6 +43,7 @@ import {
 } from "@/lib/featured-products";
 import { getApiErrorMessage } from "@/lib/api";
 import { addRecentlyViewed } from "@/lib/recently-viewed";
+import { trackProductView } from "@/lib/activity";
 import RecentlyViewed from "@/components/Product/RecentlyViewed";
 import { ProductType } from "@/type/ProductType";
 import ProductBadges, {
@@ -128,6 +129,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
           category: detail.Category,
           categoryId: detail.CategoryId || undefined,
         });
+        trackProductView(detail.ProductId);
         // Do not auto-select size/color/variant — user must choose
         setSelectedVariant(null);
         setGroupSelections({});
