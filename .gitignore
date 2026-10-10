@@ -25,7 +25,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# local env files (secrets and per-machine settings stay out of git; .env.example is the template)
+.env
+.env.local
 .env*.local
 
 # vercel

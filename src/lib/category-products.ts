@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { BRAND_ID } from "@/lib/config";
 import { ProductType } from "@/type/ProductType";
 import {
   fetchFeaturedProducts,
@@ -73,8 +74,7 @@ interface ByCategoryResponse {
 }
 
 function getBrandId(): number {
-  const brandId = Number(process.env.NEXT_PUBLIC_BRAND_ID?.trim());
-  return Number.isFinite(brandId) && brandId > 0 ? brandId : 1;
+  return BRAND_ID;
 }
 
 export interface LandingPageCategoryGroup {

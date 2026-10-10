@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { SITE_URL } from "@/lib/config";
 import { clearCartShippingPref, getCartSessionId } from "@/lib/cart";
 import { setAuthSessionFromResponse } from "@/lib/auth";
 import { clearPendingPromoCode } from "@/lib/promo";
@@ -570,9 +571,8 @@ export interface PayInvoicePayload {
 }
 
 export function getStripePaymentReturnUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   const base =
-    configured ||
+    SITE_URL ||
     (typeof window !== "undefined"
       ? window.location.origin
       : "http://localhost:3000");
