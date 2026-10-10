@@ -228,6 +228,12 @@ const renderAccountMenuContent = (onClose: () => void) => {
           </span>
           <span>My Account</span>
         </Link>
+        <Link href="/my-account/rewards" className="account-dropdown-item" onClick={onClose}>
+          <span className="account-dropdown-item-icon">
+            <Icon.Gift size={18} weight="duotone" />
+          </span>
+          <span>Rewards</span>
+        </Link>
         <Link href="/wishlist" className="account-dropdown-item" onClick={onClose}>
           <span className="account-dropdown-item-icon">
             <Icon.Heart size={18} weight="duotone" />
