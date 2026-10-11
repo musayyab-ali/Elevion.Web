@@ -16,6 +16,16 @@ const securityHeaders = [
     : []),
 ];
 
+// Images are served by the configured backend (API_BACKEND_URL), so its host is allowed too (a local or staging backend works without editing this file).
+const backendImagePattern = (() => {
+  try {
+    const u = new URL(process.env.API_BACKEND_URL || "");
+    return [{ protocol: u.protocol.replace(":", ""), hostname: u.hostname, port: u.port, pathname: "/**" }];
+  } catch {
+    return [];
+  }
+})();
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -27,6 +37,7 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
+      ...backendImagePattern,
       {
         protocol: "http",
         hostname: "thelink.innovex.biz",
