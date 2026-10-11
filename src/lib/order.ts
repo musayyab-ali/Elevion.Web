@@ -119,6 +119,8 @@ export interface OrderBillingDetails {
 }
 
 export interface OrderDetailData {
+  /** 4-digit code the customer tells the rider at the door (only while the order is out for delivery and the shop asks for one). */
+  DeliveryCode?: string | null;
   OrderId: number;
   OrderNumber: string;
   UserId: number;

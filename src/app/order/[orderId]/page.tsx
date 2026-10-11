@@ -845,6 +845,16 @@ const OrderDetailsPage = () => {
                       </div>
                     </div>
 
+                    {displayOrder.DeliveryCode && (
+                      <div className="mt-4 p-4 rounded-xl" style={{ background: "#EEF6FF", textAlign: "center" }}>
+                        <div className="caption1" style={{ fontWeight: 700, color: "#1D4ED8", textTransform: "uppercase" }}>Delivery code</div>
+                        <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: 10 }} aria-label={`Delivery code ${String(displayOrder.DeliveryCode).split("").join(" ")}`}>
+                          {displayOrder.DeliveryCode}
+                        </div>
+                        <div className="caption1 text-secondary">Tell this code to the rider when your order arrives. Do not share it with anyone else.</div>
+                      </div>
+                    )}
+
                     {displayOrder.Status === 3 && (
                       <div className="mt-4">
                         <Link
