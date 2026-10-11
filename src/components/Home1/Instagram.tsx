@@ -6,15 +6,16 @@ import Link from 'next/link'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css/bundle';
+import { useBranding } from '@/context/BrandingContext'
 
 const Instagram = () => {
+    const { shopName } = useBranding()
     return (
         <>
             <div className="instagram-block md:pt-20 pt-10">
                 <div className="container">
                     <div className="heading">
-                        <div className="heading3 text-center">TopSaver On Instagram</div>
-                        <div className="text-center mt-3">#Anvougetheme</div>
+                        <div className="heading3 text-center">{shopName} On Instagram</div>
                     </div>
                     <div className="list-instagram md:mt-10 mt-6">
                         <Swiper

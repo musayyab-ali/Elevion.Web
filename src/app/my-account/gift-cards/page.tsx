@@ -97,7 +97,7 @@ export default function GiftCardsPage() {
 
   return (
     <>
-      <TopNavOne props="style-one bg-black" slogan="" />
+      <TopNavOne props="style-one bg-black" />
       <div id="header" className="relative w-full">
         <MenuOne props="bg-transparent" />
         <Breadcrumb heading="Gift cards" subHeading="Gift cards" />

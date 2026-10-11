@@ -171,7 +171,7 @@ function NewReturn() {
 export default function NewReturnPage() {
   return (
     <>
-      <TopNavOne props="style-one bg-black" slogan="" />
+      <TopNavOne props="style-one bg-black" />
       <div id="header" className="relative w-full">
         <MenuOne props="bg-transparent" />
         <Breadcrumb heading="Return items" subHeading="Return items" />

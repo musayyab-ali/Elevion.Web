@@ -12,8 +12,9 @@ import { Toaster } from "react-hot-toast";
 import { countdownTime } from "@/store/countdownTime";
 import LandingSeo from "@/components/Common/LandingSeo";
 import CookieBanner from "@/components/Common/CookieBanner";
-import { BRAND_NAME } from "@/lib/config";
-import { getServerTheme, themeToCss } from "@/lib/theme";
+import { fetchBranding, themeFor } from "@/lib/branding";
+import { BrandingProvider } from "@/context/BrandingContext";
+import { themeToCss } from "@/lib/theme";
 
 const serverTimeLeft: CountdownTimeType = countdownTime();
 
@@ -23,32 +24,35 @@ const instrument = Instrument_Sans({
   variable: "--font-instrument",
   adjustFontFallback: false,
 });
-export const metadata: Metadata = {
-  title: BRAND_NAME,
-  description: "Multipurpose eCommerce Template",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await fetchBranding();
+  return { title: branding.shopName };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const branding = await fetchBranding();
   return (
     <GlobalProvider>
       <html lang="en">
         <head>
-          <style id="tenant-theme" dangerouslySetInnerHTML={{ __html: themeToCss(getServerTheme()) }} />
+          <style id="tenant-theme" dangerouslySetInnerHTML={{ __html: themeToCss(themeFor(branding)) }} />
         </head>
         <body className={instrument.className}>
-          <LandingSeo />
-          {children}
-          <Toaster position="top-center" />
-          <CookieBanner />
-          <ModalCart serverTimeLeft={serverTimeLeft} />
-          <ModalWishlist />
-          <ModalSearch />
-          <ModalQuickview />
-          <ModalCompare />
+          <BrandingProvider branding={branding}>
+            <LandingSeo />
+            {children}
+            <Toaster position="top-center" />
+            <CookieBanner />
+            <ModalCart serverTimeLeft={serverTimeLeft} />
+            <ModalWishlist />
+            <ModalSearch />
+            <ModalQuickview />
+            <ModalCompare />
+          </BrandingProvider>
         </body>
       </html>
     </GlobalProvider>

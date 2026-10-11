@@ -8,14 +8,21 @@ import LandingFooterImage from "@/components/Home1/LandingFooterImage";
 import TenantLogo from "@/components/Common/TenantLogo";
 import { subscribeNewsletter } from "@/lib/tenant-landing";
 import { getApiErrorMessage } from "@/lib/api";
-import { BRAND_NAME } from "@/lib/config";
 import { openCookieSettings } from "@/lib/cookie-consent";
+import SocialIcon from "@/components/Common/SocialIcon";
+import { useBranding } from "@/context/BrandingContext";
+import { COMPANY_PAGE_KEYS, LEGAL_PAGE_KEYS, copyrightLine, mailtoHref, pageHref, telHref } from "@/lib/branding-model";
 
 const FOOTER_LINK_CLASS = "caption1 has-line-before duration-300 w-fit";
 
 const Footer = () => {
+  const branding = useBranding();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const pageOf = (keys: string[]) => keys.map((key) => branding.pages.find((page) => page.key === key)).filter((page): page is NonNullable<typeof page> => Boolean(page));
+  const companyPages = pageOf(COMPANY_PAGE_KEYS);
+  const legalPages = pageOf(LEGAL_PAGE_KEYS);
 
   const handleSubscribe = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,39 +48,47 @@ const Footer = () => {
   return (
     <div id="footer" className="footer">
           <LandingFooterImage />
-      <div className="footer-main bg-[#d4f1a6]">
+      <div className="footer-main bg-green">
         <div className="container px-4 sm:px-6">
 
           <div className="content-footer">
             <div className="footer-layout">
               <div className="footer-brand">
                 <TenantLogo className="logo" />
-                <div className="footer-contact-list">
-                  <div className="footer-contact-item">
-                    <span className="footer-contact-label caption1">Mail:</span>
-                    <a
-                      href="mailto:hi.avitex@gmail.com"
-                      className="footer-contact-value caption1 hover:text-black duration-300"
-                    >
-                      hi.avitex@gmail.com
-                    </a>
+                {(branding.email || branding.phone || branding.address) && (
+                  <div className="footer-contact-list">
+                    {branding.email && (
+                      <div className="footer-contact-item">
+                        <span className="footer-contact-label caption1">Mail:</span>
+                        {mailtoHref(branding.email) ? (
+                          <a href={mailtoHref(branding.email)!} className="footer-contact-value caption1 hover:text-black duration-300">
+                            {branding.email}
+                          </a>
+                        ) : (
+                          <span className="footer-contact-value caption1">{branding.email}</span>
+                        )}
+                      </div>
+                    )}
+                    {branding.phone && (
+                      <div className="footer-contact-item">
+                        <span className="footer-contact-label caption1">Phone:</span>
+                        {telHref(branding.phone) ? (
+                          <a href={telHref(branding.phone)!} className="footer-contact-value caption1 hover:text-black duration-300">
+                            {branding.phone}
+                          </a>
+                        ) : (
+                          <span className="footer-contact-value caption1">{branding.phone}</span>
+                        )}
+                      </div>
+                    )}
+                    {branding.address && (
+                      <div className="footer-contact-item">
+                        <span className="footer-contact-label caption1">Address:</span>
+                        <span className="footer-contact-value caption1">{branding.address}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="footer-contact-item">
-                    <span className="footer-contact-label caption1">Phone:</span>
-                    <a
-                      href="tel:+13333456868"
-                      className="footer-contact-value caption1 hover:text-black duration-300"
-                    >
-                      1-333-345-6868
-                    </a>
-                  </div>
-                  <div className="footer-contact-item">
-                    <span className="footer-contact-label caption1">Address:</span>
-                    <span className="footer-contact-value caption1">
-                      549 Oak St. Crystal Lake, IL 60014
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="footer-nav-grid">
@@ -82,9 +97,16 @@ const Footer = () => {
                     Support
                   </div>
                   <div className="footer-nav-links">
-                    <Link href="/pages/contact" className={FOOTER_LINK_CLASS}>
-                      Contact Us
-                    </Link>
+                    {companyPages.map((page) => (
+                      <Link key={page.key} href={pageHref(page.key)!} className={FOOTER_LINK_CLASS}>
+                        {page.title}
+                      </Link>
+                    ))}
+                    {!companyPages.some((page) => page.key === "contact") && (
+                      <Link href="/pages/contact" className={FOOTER_LINK_CLASS}>
+                        Contact Us
+                      </Link>
+                    )}
                     <Link href="/my-account" className={FOOTER_LINK_CLASS}>
                       My Account
                     </Link>
@@ -120,18 +142,11 @@ const Footer = () => {
                 <div className="footer-nav-column">
                   <div className="footer-nav-title text-button-uppercase">Legal</div>
                   <div className="footer-nav-links">
-                    <Link href="/pages/faqs" className={FOOTER_LINK_CLASS}>
-                      FAQs
-                    </Link>
-                    <Link
-                      href="/pages/terms-and-conditions"
-                      className={FOOTER_LINK_CLASS}
-                    >
-                      Terms & Conditions
-                    </Link>
-                    <Link href="/pages/privacy-policy" className={FOOTER_LINK_CLASS}>
-                      Privacy Policy
-                    </Link>
+                    {legalPages.map((page) => (
+                      <Link key={page.key} href={pageHref(page.key)!} className={FOOTER_LINK_CLASS}>
+                        {page.title}
+                      </Link>
+                    ))}
                     <button type="button" onClick={openCookieSettings} className={`${FOOTER_LINK_CLASS} text-left`}>
                       Cookie settings
                     </button>
@@ -143,9 +158,7 @@ const Footer = () => {
                 <div className="footer-nav-title text-button-uppercase">
                   Newsletter
                 </div>
-                <p className="footer-newsletter-text caption1">
-                  Sign up for our newsletter and get 10% off your first purchase.
-                </p>
+                {branding.newsletterText && <p className="footer-newsletter-text caption1">{branding.newsletterText}</p>}
                 <div className="input-block w-full h-[52px] mt-4 max-w-full">
                   <form
                     className="w-full h-full relative"
@@ -170,30 +183,22 @@ const Footer = () => {
                     </button>
                   </form>
                 </div>
-                <div className="footer-social">
-                  <Link href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                    <div className="icon-facebook text-2xl text-black" />
-                  </Link>
-                  <Link href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                    <div className="icon-instagram text-2xl text-black" />
-                  </Link>
-                  <Link href="https://www.twitter.com/" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-                    <div className="icon-twitter text-2xl text-black" />
-                  </Link>
-                  <Link href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
-                    <div className="icon-youtube text-2xl text-black" />
-                  </Link>
-                  <Link href="https://www.pinterest.com/" target="_blank" rel="noopener noreferrer" aria-label="Pinterest">
-                    <div className="icon-pinterest text-2xl text-black" />
-                  </Link>
-                </div>
+                {branding.social.length > 0 && (
+                  <div className="footer-social">
+                    {branding.social.map((link) => (
+                      <Link key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}>
+                        <SocialIcon platform={link.platform} size={24} className="text-black" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <div className="footer-bottom border-t border-line">
             <p className="footer-copyright caption1 text-secondary">
-              © {new Date().getFullYear()} {BRAND_NAME}. All Rights Reserved.
+              {copyrightLine(branding, new Date().getFullYear())}
             </p>
           </div>
         </div>

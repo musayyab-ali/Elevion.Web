@@ -21,6 +21,7 @@ import {
 } from "@/lib/order";
 import { formatRsPrice } from "@/lib/cart";
 import { getApiErrorMessage } from "@/lib/api";
+import { useBranding } from "@/context/BrandingContext";
 
 function buildSuccessResult(
   sessionId: string,
@@ -49,6 +50,7 @@ function buildSuccessResult(
 }
 
 const StripePaymentResponseContent = () => {
+  const { shopName } = useBranding();
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("sessionId")?.trim() ?? "";
@@ -295,7 +297,7 @@ const StripePaymentResponseContent = () => {
               </h1>
               <p className="body2 text-secondary mt-2 text-sm sm:text-base max-w-sm mx-auto">
                 {isPaid
-                  ? "Thanks for shopping with TopSaver. Your payment is successfully completed."
+                  ? `Thanks for shopping with ${shopName}. Your payment is successfully completed.`
                   : "Your order is placed, but payment is currently pending or waiting for confirmation."}
               </p>
             </div>
@@ -529,7 +531,6 @@ const StripePaymentResponsePage = () => {
     <>
       <TopNavOne
         props="style-one bg-black"
-        slogan="New customers save 10% with the code GET10"
       />
       <div id="header" className="relative w-full">
         <MenuOne props="bg-transparent" />

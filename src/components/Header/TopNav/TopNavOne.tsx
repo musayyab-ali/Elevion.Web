@@ -4,7 +4,6 @@ import React from 'react'
 
 interface Props {
     props?: string
-    slogan?: string
 }
 
 /**

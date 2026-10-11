@@ -1,6 +1,6 @@
 ﻿"use client";
 import { getAuthProfile, logout } from "@/lib/auth";
-import { BRAND_NAME } from "@/lib/config";
+import { useBranding } from "@/context/BrandingContext";
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -109,6 +109,7 @@ function getUserInitials(name: string | null, email: string): string {
 }
 
 const MenuOne: React.FC<Props> = ({ props }) => {
+  const { shopName } = useBranding();
   const router = useRouter();
   const pathname = usePathname();
   const { openLoginPopup, handleLoginPopup } = useLoginPopup();
@@ -327,7 +328,7 @@ const renderAccountMenuContent = (onClose: () => void) => {
     <TenantLogo
       imageClassName="h-9 w-9 object-contain"
       textClassName="heading4 text-xl font-semibold tracking-tight"
-      logoName={BRAND_NAME}
+      logoName={shopName}
     />
     {isLoggedIn && (
       <span className="text-[10px] text-gray-500 font-medium leading-none ml-18 mt-1">
@@ -343,7 +344,7 @@ const renderAccountMenuContent = (onClose: () => void) => {
       className="justify-center"
       imageClassName="h-9 w-9 object-contain"
       textClassName="heading4 text-base font-semibold tracking-tight"
-      logoName={BRAND_NAME}
+      logoName={shopName}
     />
     {isLoggedIn && (
       <span className="text-[10px] text-gray-500 font-medium leading-none mt-0.5">

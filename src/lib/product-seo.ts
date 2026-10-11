@@ -30,7 +30,7 @@ function absolute(url: string): string {
   return base ? `${base}${url.startsWith("/") ? "" : "/"}${url}` : url;
 }
 
-export function productMetadata(detail: ProductDetailData) {
+export function productMetadata(detail: ProductDetailData, siteName: string = BRAND_NAME) {
   const title = detail.Seo?.MetaTitle?.trim() || detail.Name;
   const description =
     detail.Seo?.MetaDescription?.trim() || plainText(detail.Description || detail.LongDescription, 160) || undefined;
@@ -43,7 +43,7 @@ export function productMetadata(detail: ProductDetailData) {
       title,
       description,
       type: "website" as const,
-      siteName: BRAND_NAME,
+      siteName,
       images: image ? [{ url: absolute(image) }] : undefined,
     },
   };

@@ -118,7 +118,7 @@ export default function ReturnsPage() {
 
   return (
     <>
-      <TopNavOne props="style-one bg-black" slogan="" />
+      <TopNavOne props="style-one bg-black" />
       <div id="header" className="relative w-full">
         <MenuOne props="bg-transparent" />
         <Breadcrumb heading="My Returns" subHeading="My Returns" />

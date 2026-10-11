@@ -1,13 +1,13 @@
 import type { MetadataRoute } from "next";
-import { BRAND_NAME } from "@/lib/config";
-import { getServerTheme } from "@/lib/theme";
+import { fetchBranding, themeFor } from "@/lib/branding";
 
 /** Lets customers "install" the shop on their phone; name and colours come from the tenant's configuration. */
-export default function manifest(): MetadataRoute.Manifest {
-  const theme = getServerTheme();
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const branding = await fetchBranding();
+  const theme = themeFor(branding);
   return {
-    name: BRAND_NAME,
-    short_name: BRAND_NAME.slice(0, 12),
+    name: branding.shopName,
+    short_name: branding.shopName.slice(0, 12),
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

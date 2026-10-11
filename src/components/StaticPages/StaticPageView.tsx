@@ -6,6 +6,7 @@ import MenuOne from "@/components/Header/Menu/MenuOne";
 import Breadcrumb from "@/components/Breadcrumb/Breadcrumb";
 import Footer from "@/components/Footer/Footer";
 import StaticPageAccordion from "@/components/StaticPages/StaticPageAccordion";
+import StaticPageContentBody from "@/components/StaticPages/StaticPageContentBody";
 import {
   fetchStaticPageByKey,
   StaticPageKey,
@@ -18,6 +19,12 @@ interface StaticPageViewProps {
   heading: string;
   subHeading: string;
   intro?: string;
+  /** "accordion": questions that open (FAQs, policies). "article": every section written out (About us). */
+  layout?: "accordion" | "article";
+  /** Shown when the shop has not written this page yet. */
+  emptyText?: string;
+  /** Extra sections between the page text and the footer. */
+  footerExtra?: React.ReactNode;
 }
 
 const StaticPageView: React.FC<StaticPageViewProps> = ({
@@ -25,6 +32,9 @@ const StaticPageView: React.FC<StaticPageViewProps> = ({
   heading,
   subHeading,
   intro,
+  layout = "accordion",
+  emptyText,
+  footerExtra,
 }) => {
   const [sections, setSections] = useState<StaticPageSection[]>([]);
   const [pageTitle, setPageTitle] = useState(heading);
@@ -62,10 +72,7 @@ const StaticPageView: React.FC<StaticPageViewProps> = ({
 
   return (
     <>
-      <TopNavOne
-        props="style-one bg-black"
-        slogan="New customers save 10% with the code GET10"
-      />
+      <TopNavOne props="style-one bg-black" />
       <div id="header" className="relative w-full">
         <MenuOne props="bg-transparent" />
         <Breadcrumb heading={pageTitle} subHeading={subHeading} />
@@ -87,11 +94,30 @@ const StaticPageView: React.FC<StaticPageViewProps> = ({
             </div>
           )}
 
-          {!loading && !error && (
+          {!loading && !error && sections.length === 0 && (
+            <p className="body1 text-secondary text-center py-10">
+              {emptyText ?? "No content available right now."}
+            </p>
+          )}
+
+          {!loading && !error && sections.length > 0 && layout === "accordion" && (
             <StaticPageAccordion sections={sections} />
+          )}
+
+          {!loading && !error && sections.length > 0 && layout === "article" && (
+            <div className="flex flex-col gap-8 md:gap-10">
+              {sections.map((section) => (
+                <section key={section.id}>
+                  <h2 className="heading4 mb-3">{section.title}</h2>
+                  <StaticPageContentBody content={section.content} />
+                </section>
+              ))}
+            </div>
           )}
         </div>
       </div>
+
+      {footerExtra}
 
       <Footer />
     </>

@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import * as Icon from "@phosphor-icons/react/dist/ssr";
 import { useModalQuickviewContext } from "@/context/ModalQuickviewContext";
+import { useBranding } from "@/context/BrandingContext";
 import Image from "next/image";
 import TenantLogo from "@/components/Common/TenantLogo";
 import {
@@ -17,6 +18,7 @@ import {
 import ProductSkeleton from "@/components/Other/ProductSkeleton";
 
 const ModalNewsletter = () => {
+  const { shopName, newsletterText } = useBranding();
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<FeaturedProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,12 +87,11 @@ const ModalNewsletter = () => {
                   imageClassName="h-11 w-11 object-contain"
                 />
                 <h2 className="newsletter-modal-headline">
-                  Style meets simplicity in every order.
+                  Welcome to {shopName}
                 </h2>
-                <p className="newsletter-modal-description">
-                  Explore hand-picked products, seasonal offers, and a checkout
-                  experience built for modern shoppers.
-                </p>
+                {newsletterText && (
+                  <p className="newsletter-modal-description">{newsletterText}</p>
+                )}
                 {featuredProduct && (
                   <Link
                     href={getProductDetailUrl(

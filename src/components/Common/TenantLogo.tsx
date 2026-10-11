@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLandingPage } from "@/hooks/useLandingPage";
 import { isLandingImageEnabled } from "@/lib/tenant-landing";
-import { BRAND_NAME } from "@/lib/config";
+import { useBranding } from "@/context/BrandingContext";
 
 interface TenantLogoProps {
   className?: string;
@@ -24,6 +24,7 @@ const TenantLogo = ({
   welcomeName,
 }: TenantLogoProps) => {
   const landing = useLandingPage();
+  const { shopName } = useBranding();
   const logoSrc =
     landing &&
       isLandingImageEnabled(landing.HeaderImageRequest) &&
@@ -44,7 +45,7 @@ const TenantLogo = ({
       "Welcome Back!"
     )
   ) : (
-    BRAND_NAME
+    shopName
   );
 
   return (
@@ -56,13 +57,13 @@ const TenantLogo = ({
           ? welcomeName
             ? `Welcome, ${welcomeName}`
             : "Welcome Back!"
-          : BRAND_NAME
+          : shopName
       }
     >
       {logoSrc && (
         <Image
           src={logoSrc}
-          alt={welcomeName ? "User profile" : `${BRAND_NAME} logo`}
+          alt={welcomeName ? "User profile" : `${shopName} logo`}
           width={44}
           height={44}
           className={`${imageClassName} shrink-0`}
