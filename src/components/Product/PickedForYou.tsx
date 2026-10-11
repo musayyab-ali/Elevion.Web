@@ -5,6 +5,7 @@ import Product from "@/components/Product/Product";
 import { fetchCategoryProducts } from "@/lib/product-search";
 import { excludeSeen, topCategory } from "@/lib/picked-for-you";
 import { getRecentlyViewed } from "@/lib/recently-viewed";
+import { preferencesAllowed } from "@/lib/cookie-consent";
 import type { ProductType } from "@/type/ProductType";
 
 /** "Picked for you": more products from the category this customer looks at most. Shown only when there is something to suggest. */
@@ -14,6 +15,7 @@ const PickedForYou = ({ className = "" }: { className?: string }) => {
 
   useEffect(() => {
     let cancelled = false;
+    if (!preferencesAllowed()) return;
     const recent = getRecentlyViewed();
     const category = topCategory(recent);
     if (!category) return;

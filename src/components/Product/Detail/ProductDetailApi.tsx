@@ -44,6 +44,7 @@ import {
 import { getApiErrorMessage } from "@/lib/api";
 import { addRecentlyViewed } from "@/lib/recently-viewed";
 import { trackProductView } from "@/lib/activity";
+import { analyticsAllowed, preferencesAllowed } from "@/lib/cookie-consent";
 import RecentlyViewed from "@/components/Product/RecentlyViewed";
 import { ProductType } from "@/type/ProductType";
 import ProductBadges, {
@@ -120,7 +121,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
         );
 
         setProductDetail(detail);
-        addRecentlyViewed({
+        if (preferencesAllowed()) addRecentlyViewed({
           id: detail.ProductId,
           detailId: detail.ProductDetailId || undefined,
           name: detail.Name,
@@ -129,7 +130,7 @@ const ProductDetailApi: React.FC<Props> = ({ productId, productDetailId }) => {
           category: detail.Category,
           categoryId: detail.CategoryId || undefined,
         });
-        trackProductView(detail.ProductId);
+        if (analyticsAllowed()) trackProductView(detail.ProductId);
         // Do not auto-select size/color/variant — user must choose
         setSelectedVariant(null);
         setGroupSelections({});

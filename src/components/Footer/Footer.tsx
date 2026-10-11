@@ -9,6 +9,7 @@ import TenantLogo from "@/components/Common/TenantLogo";
 import { subscribeNewsletter } from "@/lib/tenant-landing";
 import { getApiErrorMessage } from "@/lib/api";
 import { BRAND_NAME } from "@/lib/config";
+import { openCookieSettings } from "@/lib/cookie-consent";
 
 const FOOTER_LINK_CLASS = "caption1 has-line-before duration-300 w-fit";
 
@@ -131,6 +132,9 @@ const Footer = () => {
                     <Link href="/pages/privacy-policy" className={FOOTER_LINK_CLASS}>
                       Privacy Policy
                     </Link>
+                    <button type="button" onClick={openCookieSettings} className={`${FOOTER_LINK_CLASS} text-left`}>
+                      Cookie settings
+                    </button>
                   </div>
                 </div>
               </div>

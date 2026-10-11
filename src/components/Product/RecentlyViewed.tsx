@@ -11,6 +11,7 @@ import {
   getRecentlyViewed,
   type RecentProduct,
 } from "@/lib/recently-viewed";
+import { COOKIE_CONSENT_EVENT, preferencesAllowed } from "@/lib/cookie-consent";
 
 type Props = {
   /** The product being looked at right now is not suggested to itself. */
@@ -22,10 +23,14 @@ const RecentlyViewed = ({ excludeId, className = "" }: Props) => {
   const [items, setItems] = useState<RecentProduct[]>([]);
 
   useEffect(() => {
-    const load = () => setItems(getRecentlyViewed());
+    const load = () => setItems(preferencesAllowed() ? getRecentlyViewed() : []);
     load();
     window.addEventListener(RECENTLY_VIEWED_EVENT, load);
-    return () => window.removeEventListener(RECENTLY_VIEWED_EVENT, load);
+    window.addEventListener(COOKIE_CONSENT_EVENT, load);
+    return () => {
+      window.removeEventListener(RECENTLY_VIEWED_EVENT, load);
+      window.removeEventListener(COOKIE_CONSENT_EVENT, load);
+    };
   }, []);
 
   const visible = items.filter((item) => item.id !== excludeId).slice(0, 8);

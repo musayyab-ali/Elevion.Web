@@ -11,6 +11,7 @@ import CountdownTimeType from "@/type/CountdownType";
 import { Toaster } from "react-hot-toast";
 import { countdownTime } from "@/store/countdownTime";
 import LandingSeo from "@/components/Common/LandingSeo";
+import CookieBanner from "@/components/Common/CookieBanner";
 import { BRAND_NAME } from "@/lib/config";
 import { getServerTheme, themeToCss } from "@/lib/theme";
 
@@ -42,6 +43,7 @@ export default function RootLayout({
           <LandingSeo />
           {children}
           <Toaster position="top-center" />
+          <CookieBanner />
           <ModalCart serverTimeLeft={serverTimeLeft} />
           <ModalWishlist />
           <ModalSearch />
