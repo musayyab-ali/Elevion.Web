@@ -118,9 +118,13 @@ export interface OrderBillingDetails {
   phone?: string;
 }
 
+import type { RiderFeedbackState } from "@/lib/rider-feedback";
+
 export interface OrderDetailData {
   /** 4-digit code the customer tells the rider at the door (only while the order is out for delivery and the shop asks for one). */
   DeliveryCode?: string | null;
+  /** Rate / tip the rider: what the customer may still do and what was already given (null when the shop has it off). */
+  RiderFeedback?: RiderFeedbackState | null;
   OrderId: number;
   OrderNumber: string;
   UserId: number;
@@ -477,6 +481,29 @@ export async function cancelCustomerOrder(orderId: number): Promise<string> {
   );
 
   return response.data?.Message || "Order cancelled successfully.";
+}
+
+/** The signed-in customer rates the rider who delivered the order (1 to 5 stars, once). */
+export async function rateRider(orderId: number, stars: number, comment: string): Promise<void> {
+  try {
+    await api.post("/api/v1/Order/RateRider", { OrderId: orderId, Stars: stars, Comment: comment.trim() || null });
+  } catch (error: unknown) {
+    throw new Error(feedbackMessage(error, "Could not save your rating."));
+  }
+}
+
+/** Sets (or removes, with 0) the cash tip for the rider while a cash-on-delivery order is out for delivery. */
+export async function setRiderTip(orderId: number, amount: number): Promise<void> {
+  try {
+    await api.post("/api/v1/Order/SetRiderTip", { OrderId: orderId, Amount: amount });
+  } catch (error: unknown) {
+    throw new Error(feedbackMessage(error, "Could not save your tip."));
+  }
+}
+
+function feedbackMessage(error: unknown, fallback: string): string {
+  const data = (error as { response?: { data?: { message?: string; Message?: string } } })?.response?.data;
+  return data?.message || data?.Message || fallback;
 }
 
 /** Cash on Delivery skips the gateway and is confirmed directly. */

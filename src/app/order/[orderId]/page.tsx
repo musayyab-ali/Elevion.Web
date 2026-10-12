@@ -1,5 +1,6 @@
 "use client";
 
+import RiderFeedbackCard from "@/components/Order/RiderFeedbackCard";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -844,6 +845,11 @@ const OrderDetailsPage = () => {
                         )}
                       </div>
                     </div>
+
+                    <RiderFeedbackCard
+                      orderId={displayOrder.OrderId}
+                      initial={displayOrder.RiderFeedback}
+                    />
 
                     {displayOrder.DeliveryCode && (
                       <div className="mt-4 p-4 rounded-xl" style={{ background: "#EEF6FF", textAlign: "center" }}>
