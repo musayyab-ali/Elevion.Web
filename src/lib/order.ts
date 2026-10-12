@@ -123,6 +123,9 @@ import type { RiderFeedbackState } from "@/lib/rider-feedback";
 export interface OrderDetailData {
   /** 4-digit code the customer tells the rider at the door (only while the order is out for delivery and the shop asks for one). */
   DeliveryCode?: string | null;
+  /** Address of the "track your order" page and the estimated arrival in words (only while the order is out for delivery and the shop has tracking on). */
+  TrackingUrl?: string | null;
+  EtaText?: string | null;
   /** Rate / tip the rider: what the customer may still do and what was already given (null when the shop has it off). */
   RiderFeedback?: RiderFeedbackState | null;
   OrderId: number;

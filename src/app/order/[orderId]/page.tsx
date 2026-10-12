@@ -846,6 +846,22 @@ const OrderDetailsPage = () => {
                       </div>
                     </div>
 
+                    {displayOrder.TrackingUrl && (
+                      <div className="mt-4 p-4 rounded-xl" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+                        <div className="heading6">Your order is on its way</div>
+                        {displayOrder.EtaText && <div className="caption1 text-secondary mt-1">{displayOrder.EtaText}</div>}
+                        <a
+                          href={displayOrder.TrackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="button-main mt-3"
+                          style={{ display: "inline-block" }}
+                        >
+                          Track your order
+                        </a>
+                      </div>
+                    )}
+
                     <RiderFeedbackCard
                       orderId={displayOrder.OrderId}
                       initial={displayOrder.RiderFeedback}
